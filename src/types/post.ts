@@ -1,7 +1,7 @@
 /**
- * Shared content types. These mirror the planned database schema
- * (see CLAUDE.md §5) so the mock data layer can later be swapped for
- * Supabase queries without changing component contracts.
+ * Shared content types used by components. `src/lib/posts.ts` maps
+ * database rows (see `src/types/database.ts`) into these shapes, so
+ * components never depend on column names.
  */
 
 export type PostStatus = "draft" | "published" | "archived";

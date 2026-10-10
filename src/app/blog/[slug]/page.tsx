@@ -13,6 +13,10 @@ import type { PostSummary } from "@/types/post";
 
 export async function generateStaticParams() {
   const slugs = await getPublishedSlugs();
+  // Cache Components requires at least one param. Before anything is
+  // published, prerender a slug that can never exist (slugs cannot contain
+  // underscores), which renders the not-found page.
+  if (slugs.length === 0) return [{ slug: "__none__" }];
   return slugs.map((slug) => ({ slug }));
 }
 
@@ -115,13 +119,6 @@ async function ArticleContent({ params }: { params: ArticleParams }) {
       </div>
 
       <div className="mx-auto mt-12 max-w-[42rem]">
-        <p
-          role="note"
-          className="mb-10 rounded-xl border border-dashed border-rule-strong px-4 py-3 text-sm text-ink-muted"
-        >
-          Placeholder post: this article is fictional sample content used during development.
-        </p>
-
         <ArticleBody markdown={post.contentMarkdown} />
 
         {post.tags.length > 0 && (

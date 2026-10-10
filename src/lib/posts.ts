@@ -1,23 +1,71 @@
+import "server-only";
+
+import { cacheLife, cacheTag } from "next/cache";
+
 import { siteConfig } from "@/config/site";
-import { mockPosts } from "@/content/mock-posts";
 import { estimateReadingTime } from "@/lib/reading-time";
-import type { Post, PostSummary, PublishedPost } from "@/types/post";
+import { createPublicClient } from "@/lib/supabase/public";
+import type { PostSummary, PublishedPost } from "@/types/post";
 
 /*
- * Public data-access layer.
+ * Public data-access layer, backed by Supabase.
  *
- * Currently backed by in-memory mock data. Function signatures are async so
- * they can be replaced with Supabase queries later without touching pages.
- * All public reads go through `isPubliclyVisible`; drafts and archived posts
- * must never leave this module.
+ * Every query uses the cookie-less anon client, so RLS only ever returns
+ * posts with status = 'published' and published_at <= now(). The explicit
+ * filters below repeat that rule so this module stays correct on its own.
+ * Drafts, archived, and scheduled posts never leave this module.
+ *
+ * Results are cached for a few minutes and tagged "posts" so future admin
+ * mutations can refresh them with updateTag/revalidateTag. A scheduled post
+ * therefore appears within one cache lifetime of its publication time.
  */
 
-function isPubliclyVisible(post: Post): post is Post & { status: "published"; publishedAt: string } {
-  return post.status === "published" && post.publishedAt !== null;
+export const POSTS_CACHE_TAG = "posts";
+
+/** How many of the newest articles are prerendered at build time. */
+const PRERENDERED_ARTICLES = 50;
+
+const POST_COLUMNS = `
+  id, slug, title, excerpt, content_markdown, status,
+  created_at, updated_at, published_at,
+  category:categories ( slug, name ),
+  post_tags ( tag:tags ( slug, name ) )
+` as const;
+
+function publishedPosts() {
+  return createPublicClient()
+    .from("posts")
+    .select(POST_COLUMNS, { count: "exact" })
+    .eq("status", "published")
+    .not("published_at", "is", null);
 }
 
-function toPublished(post: Post & { status: "published"; publishedAt: string }): PublishedPost {
-  return { ...post, readingTimeMinutes: estimateReadingTime(post.contentMarkdown) };
+type PostRow = NonNullable<Awaited<ReturnType<typeof publishedPosts>>["data"]>[number];
+
+function toPublished(row: PostRow): PublishedPost {
+  if (row.status !== "published" || row.published_at === null) {
+    // RLS and the query filters make this unreachable; refuse rather than leak.
+    throw new Error("Refusing to expose an unpublished post.");
+  }
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    contentMarkdown: row.content_markdown,
+    // Image delivery for the private bucket is not built yet, so every post
+    // uses the generated fallback cover for now. See README "Image delivery".
+    coverImage: null,
+    category: row.category ? { slug: row.category.slug, name: row.category.name } : null,
+    tags: row.post_tags
+      .flatMap(({ tag }) => (tag ? [tag.name] : []))
+      .sort((a, b) => a.localeCompare(b)),
+    status: "published",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    publishedAt: row.published_at,
+    readingTimeMinutes: estimateReadingTime(row.content_markdown),
+  };
 }
 
 function toSummary(post: PublishedPost): PostSummary {
@@ -25,12 +73,13 @@ function toSummary(post: PublishedPost): PostSummary {
   return summary;
 }
 
-/** All published posts, newest first by publication time. */
-function publishedPostsNewestFirst(): PublishedPost[] {
-  return mockPosts
-    .filter(isPubliclyVisible)
-    .map(toPublished)
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+function pageCount(total: number): number {
+  return Math.max(1, Math.ceil(total / siteConfig.postsPerPage));
+}
+
+function fail(what: string): never {
+  // Keep database details out of rendered errors.
+  throw new Error(`Could not load ${what}.`);
 }
 
 export interface PostPage {
@@ -39,46 +88,111 @@ export interface PostPage {
   totalPages: number;
 }
 
-/** One bounded page of the public feed. Pages are 1-indexed. */
+/** One bounded page of the public feed, newest first. Pages are 1-indexed. */
 export async function getPublishedPostPage(page: number): Promise<PostPage | null> {
-  const all = publishedPostsNewestFirst();
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(POSTS_CACHE_TAG);
+
+  if (!Number.isInteger(page) || page < 1) return null;
+
   const perPage = siteConfig.postsPerPage;
-  const totalPages = Math.max(1, Math.ceil(all.length / perPage));
+  const from = (page - 1) * perPage;
+  const { data, count, error } = await publishedPosts()
+    .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(from, from + perPage - 1);
 
-  if (!Number.isInteger(page) || page < 1 || page > totalPages) return null;
+  // PostgREST rejects ranges past the end (416) when the table is non-empty.
+  if (error && error.code !== "PGRST103") fail("posts");
 
-  const start = (page - 1) * perPage;
-  return {
-    posts: all.slice(start, start + perPage).map(toSummary),
-    page,
-    totalPages,
-  };
+  const totalPages = pageCount(count ?? 0);
+  if (page > totalPages) return null;
+
+  return { posts: (data ?? []).map(toPublished).map(toSummary), page, totalPages };
 }
 
 export async function getPublishedPageCount(): Promise<number> {
-  return Math.max(1, Math.ceil(publishedPostsNewestFirst().length / siteConfig.postsPerPage));
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(POSTS_CACHE_TAG);
+
+  const { count, error } = await createPublicClient()
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published")
+    .not("published_at", "is", null);
+  if (error) fail("posts");
+
+  return pageCount(count ?? 0);
 }
 
 export async function getPublishedPostBySlug(slug: string): Promise<PublishedPost | null> {
-  return publishedPostsNewestFirst().find((post) => post.slug === slug) ?? null;
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(POSTS_CACHE_TAG);
+
+  // Malformed slugs can't exist in the database (see the slug check constraint).
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 120) return null;
+
+  const { data, error } = await publishedPosts().eq("slug", slug).maybeSingle();
+  if (error) fail("the post");
+
+  return data ? toPublished(data) : null;
 }
 
+/** Slugs of the newest posts, for prerendering. Older posts render on first request. */
 export async function getPublishedSlugs(): Promise<string[]> {
-  return publishedPostsNewestFirst().map((post) => post.slug);
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(POSTS_CACHE_TAG);
+
+  const { data, error } = await createPublicClient()
+    .from("posts")
+    .select("slug")
+    .eq("status", "published")
+    .not("published_at", "is", null)
+    .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(PRERENDERED_ARTICLES);
+  if (error) fail("posts");
+
+  return data.map((row) => row.slug);
 }
 
 /** The chronologically adjacent published posts, for article footers. */
 export async function getAdjacentPosts(
   slug: string,
 ): Promise<{ newer: PostSummary | null; older: PostSummary | null }> {
-  const all = publishedPostsNewestFirst();
-  const index = all.findIndex((post) => post.slug === slug);
-  if (index === -1) return { newer: null, older: null };
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(POSTS_CACHE_TAG);
 
-  const newer = all[index - 1];
-  const older = all[index + 1];
+  const current = await getPublishedPostBySlug(slug);
+  if (!current) return { newer: null, older: null };
+
+  // Feed order is (published_at desc, id desc); ties on published_at fall back to id.
+  const at = current.publishedAt;
+  const id = current.id;
+
+  const [newer, older] = await Promise.all([
+    publishedPosts()
+      .or(`published_at.gt.${at},and(published_at.eq.${at},id.gt.${id})`)
+      .order("published_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    publishedPosts()
+      .or(`published_at.lt.${at},and(published_at.eq.${at},id.lt.${id})`)
+      .order("published_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (newer.error || older.error) fail("adjacent posts");
+
   return {
-    newer: newer ? toSummary(newer) : null,
-    older: older ? toSummary(older) : null,
+    newer: newer.data ? toSummary(toPublished(newer.data)) : null,
+    older: older.data ? toSummary(toPublished(older.data)) : null,
   };
 }
