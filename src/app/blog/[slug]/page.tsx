@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
@@ -32,15 +33,16 @@ export async function generateMetadata(props: PageProps<"/blog/[slug]">): Promis
   };
 }
 
-export default async function ArticlePage(props: PageProps<"/blog/[slug]">) {
-  const { slug } = await props.params;
-  const post = await getPublishedPostBySlug(slug);
-  if (!post) notFound();
+type ArticleParams = PageProps<"/blog/[slug]">["params"];
 
-  const { newer, older } = await getAdjacentPosts(post.slug);
-
+/*
+ * The page itself renders only URL-independent UI so client navigations can
+ * show it instantly. Everything that depends on the slug lives inside
+ * <Suspense>; slugs from generateStaticParams are still fully prerendered.
+ */
+export default function ArticlePage(props: PageProps<"/blog/[slug]">) {
   return (
-    <article className="px-5 pt-10 sm:px-8 sm:pt-14">
+    <div className="px-5 pt-10 sm:px-8 sm:pt-14">
       <div className="mx-auto max-w-[42rem]">
         <Link
           href="/"
@@ -49,7 +51,39 @@ export default async function ArticlePage(props: PageProps<"/blog/[slug]">) {
           <ArrowLeft aria-hidden="true" className="size-4" />
           All writing
         </Link>
+      </div>
 
+      <Suspense fallback={<ArticleSkeleton />}>
+        <ArticleContent params={props.params} />
+      </Suspense>
+    </div>
+  );
+}
+
+function ArticleSkeleton() {
+  return (
+    <div role="status" aria-label="Loading article" className="mx-auto mt-10 max-w-[42rem] sm:mt-14">
+      <div className="space-y-4 motion-safe:animate-pulse">
+        <div className="h-3 w-24 rounded bg-rule" />
+        <div className="h-10 w-full rounded bg-rule sm:h-14" />
+        <div className="h-10 w-3/4 rounded bg-rule sm:h-14" />
+        <div className="h-6 w-full rounded bg-rule" />
+        <div className="mt-10 aspect-[16/9] rounded-2xl bg-rule sm:rounded-3xl" />
+      </div>
+    </div>
+  );
+}
+
+async function ArticleContent({ params }: { params: ArticleParams }) {
+  const { slug } = await params;
+  const post = await getPublishedPostBySlug(slug);
+  if (!post) notFound();
+
+  const { newer, older } = await getAdjacentPosts(post.slug);
+
+  return (
+    <article>
+      <div className="mx-auto max-w-[42rem]">
         <header className="mt-10 sm:mt-14">
           {post.category && (
             <p className="text-xs font-medium tracking-[0.16em] text-accent uppercase">
