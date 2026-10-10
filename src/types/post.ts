@@ -12,7 +12,7 @@ export interface Category {
 }
 
 export interface CoverImage {
-  /** Storage path or local path; never an arbitrary trusted URL. */
+  /** `/media/<storage path>`, served by the app; never an arbitrary URL. */
   src: string;
   alt: string;
   width: number;

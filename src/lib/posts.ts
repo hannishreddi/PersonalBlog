@@ -3,9 +3,10 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { siteConfig } from "@/config/site";
+import { mediaUrl, parseImagePath } from "@/lib/images";
 import { estimateReadingTime } from "@/lib/reading-time";
 import { createPublicClient } from "@/lib/supabase/public";
-import type { PostSummary, PublishedPost } from "@/types/post";
+import type { CoverImage, PostSummary, PublishedPost } from "@/types/post";
 
 /*
  * Public data-access layer, backed by Supabase.
@@ -28,6 +29,7 @@ const PRERENDERED_ARTICLES = 50;
 const POST_COLUMNS = `
   id, slug, title, excerpt, content_markdown, status,
   created_at, updated_at, published_at,
+  cover_image_path, cover_image_alt,
   category:categories ( slug, name ),
   post_tags ( tag:tags ( slug, name ) )
 ` as const;
@@ -42,6 +44,17 @@ function publishedPosts() {
 
 type PostRow = NonNullable<Awaited<ReturnType<typeof publishedPosts>>["data"]>[number];
 
+/**
+ * Covers are served from /media, which only returns images referenced by a
+ * published post (see README "Image delivery"). Dimensions come from the
+ * canonical path; anything not in that format falls back to generated art.
+ */
+function toCoverImage(row: PostRow): CoverImage | null {
+  const image = row.cover_image_path ? parseImagePath(row.cover_image_path) : null;
+  if (!image) return null;
+  return { src: mediaUrl(image.path), alt: row.cover_image_alt ?? "", width: image.width, height: image.height };
+}
+
 function toPublished(row: PostRow): PublishedPost {
   if (row.status !== "published" || row.published_at === null) {
     // RLS and the query filters make this unreachable; refuse rather than leak.
@@ -53,9 +66,7 @@ function toPublished(row: PostRow): PublishedPost {
     title: row.title,
     excerpt: row.excerpt,
     contentMarkdown: row.content_markdown,
-    // Image delivery for the private bucket is not built yet, so every post
-    // uses the generated fallback cover for now. See README "Image delivery".
-    coverImage: null,
+    coverImage: toCoverImage(row),
     category: row.category ? { slug: row.category.slug, name: row.category.name } : null,
     tags: row.post_tags
       .flatMap(({ tag }) => (tag ? [tag.name] : []))

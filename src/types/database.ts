@@ -55,6 +55,20 @@ export type Database = {
           },
         ];
       };
+      post_images: {
+        Row: { post_id: string; storage_path: string };
+        Insert: { post_id: string; storage_path: string };
+        Update: { post_id?: string; storage_path?: string };
+        Relationships: [
+          {
+            foreignKeyName: "post_images_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       post_tags: {
         Row: { post_id: string; tag_id: string };
         Insert: { post_id: string; tag_id: string };

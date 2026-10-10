@@ -223,6 +223,8 @@ body {
   max-width: 100%;
   height: auto;
   border-radius: 10px;
+  /* Shows while an uploaded image (with reserved dimensions) loads. */
+  background: var(--paper-sunk);
 }
 
 .article-prose em {
