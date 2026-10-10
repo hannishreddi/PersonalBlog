@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { ArticleBody } from "@/components/article/article-body";
+import { PostEngagement } from "@/components/engagement/post-engagement";
 import { PostCover } from "@/components/posts/post-cover";
 import { PostMeta } from "@/components/posts/post-meta";
 import { siteConfig } from "@/config/site";
@@ -133,6 +134,8 @@ async function ArticleContent({ params }: { params: ArticleParams }) {
             ))}
           </ul>
         )}
+
+        <PostEngagement postId={post.id} />
       </div>
 
       {(newer || older) && (

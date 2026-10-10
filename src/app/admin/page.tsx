@@ -1,9 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ArrowRight, ExternalLink, LogOut, PenLine, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, LogOut, MessageSquare, PenLine, Plus } from "lucide-react";
 
-import { getPostStatusCounts, isPostStatus, listAdminPosts, type AdminPostListItem } from "@/lib/admin";
+import {
+  getCommentStatusCounts,
+  getPostStatusCounts,
+  isPostStatus,
+  listAdminPosts,
+  type AdminPostListItem,
+} from "@/lib/admin";
 import { getViewerStatus } from "@/lib/auth";
 import { formatDate, formatDateTimeUtc } from "@/lib/format";
 import type { PostStatus } from "@/types/post";
@@ -64,7 +70,11 @@ async function AdminContent({ searchParams }: { searchParams: SearchParams }) {
   const page = Number.isInteger(rawPage) && rawPage >= 1 && rawPage <= 10_000 ? rawPage : 1;
   const notice = NOTICES[first(params.notice) ?? ""];
 
-  const [counts, list] = await Promise.all([getPostStatusCounts(), listAdminPosts(status, page)]);
+  const [counts, list, commentCounts] = await Promise.all([
+    getPostStatusCounts(),
+    listAdminPosts(status, page),
+    getCommentStatusCounts(),
+  ]);
   const total = counts.draft + counts.published + counts.archived;
   const now = list.loadedAt;
 
@@ -74,13 +84,27 @@ async function AdminContent({ searchParams }: { searchParams: SearchParams }) {
         <p className="text-ink-soft">
           Signed in as <span className="font-medium text-ink">{viewer.owner.email ?? "the owner"}</span>.
         </p>
-        <Link
-          href="/admin/posts/new"
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper"
-        >
-          <Plus aria-hidden="true" className="size-4" />
-          New post
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/comments"
+            className="inline-flex items-center gap-2 rounded-full border border-rule-strong px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink"
+          >
+            <MessageSquare aria-hidden="true" className="size-4" />
+            Comments
+            {commentCounts.pending > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-paper tabular-nums">
+                {commentCounts.pending} pending
+              </span>
+            )}
+          </Link>
+          <Link
+            href="/admin/posts/new"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            New post
+          </Link>
+        </div>
       </div>
 
       {notice && (

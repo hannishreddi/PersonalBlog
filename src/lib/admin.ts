@@ -178,3 +178,101 @@ export async function getTaxonomyNames(): Promise<{ categories: string[]; tags: 
     tags: tags.data.map((row) => row.name),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Comment moderation
+// ---------------------------------------------------------------------------
+
+export type CommentStatus = "pending" | "approved" | "rejected";
+
+export const COMMENT_STATUSES: readonly CommentStatus[] = ["pending", "approved", "rejected"];
+
+/** Comments per page in the moderation list. */
+export const ADMIN_COMMENTS_PER_PAGE = 25;
+
+export function isCommentStatus(value: unknown): value is CommentStatus {
+  return typeof value === "string" && (COMMENT_STATUSES as readonly string[]).includes(value);
+}
+
+export async function getCommentStatusCounts(): Promise<Record<CommentStatus, number>> {
+  await requireOwner();
+  const supabase = await createSessionClient();
+
+  const entries = await Promise.all(
+    COMMENT_STATUSES.map(async (status) => {
+      const { count, error } = await supabase
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("status", status);
+      if (error) fail("comment counts");
+      return [status, count ?? 0] as const;
+    }),
+  );
+
+  return Object.fromEntries(entries) as Record<CommentStatus, number>;
+}
+
+export interface AdminComment {
+  id: string;
+  authorName: string;
+  content: string;
+  status: CommentStatus;
+  createdAt: string;
+  post: { id: string; title: string; slug: string; status: PostStatus; publishedAt: string | null } | null;
+}
+
+export interface AdminCommentPage {
+  comments: AdminComment[];
+  page: number;
+  totalPages: number;
+  /** When the list was read (ms since epoch), for telling scheduled posts apart. */
+  loadedAt: number;
+}
+
+/** One page of comments with the given status, newest first. Pages are 1-indexed. */
+export async function listAdminComments(status: CommentStatus, page: number): Promise<AdminCommentPage> {
+  await requireOwner();
+  await connection();
+  const supabase = await createSessionClient();
+
+  const from = (page - 1) * ADMIN_COMMENTS_PER_PAGE;
+  const { data, count, error } = await supabase
+    .from("comments")
+    .select("id, author_name, content, status, created_at, post:posts ( id, title, slug, status, published_at )", {
+      count: "exact",
+    })
+    .eq("status", status)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(from, from + ADMIN_COMMENTS_PER_PAGE - 1);
+  if (error && error.code !== "PGRST103") fail("comments");
+
+  return {
+    comments: (data ?? []).flatMap((row) =>
+      isCommentStatus(row.status)
+        ? [
+            {
+              id: row.id,
+              authorName: row.author_name,
+              content: row.content,
+              status: row.status,
+              createdAt: row.created_at,
+              post:
+                row.post && isPostStatus(row.post.status)
+                  ? {
+                      id: row.post.id,
+                      title: row.post.title,
+                      slug: row.post.slug,
+                      status: row.post.status,
+                      publishedAt: row.post.published_at,
+                    }
+                  : null,
+            },
+          ]
+        : [],
+    ),
+    page,
+    totalPages: Math.max(1, Math.ceil((count ?? 0) / ADMIN_COMMENTS_PER_PAGE)),
+    loadedAt: Date.now(),
+  };
+}

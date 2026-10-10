@@ -194,7 +194,19 @@ export type Database = {
         Args: { post_ids: string[] };
         Returns: { approved_comment_count: number; post_id: string; reaction_count: number }[];
       };
+      get_post_reaction_state: {
+        Args: { p_post_id: string; p_reactor: string };
+        Returns: { reacted: boolean; reaction_count: number }[];
+      };
       is_blog_owner: { Args: never; Returns: boolean };
+      set_post_reaction: {
+        Args: { p_client: string; p_post_id: string; p_reacted: boolean; p_reactor: string };
+        Returns: { outcome: string; reacted: boolean; reaction_count: number }[];
+      };
+      submit_guest_comment: {
+        Args: { p_author_name: string; p_client: string; p_content: string; p_post_id: string };
+        Returns: string;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

@@ -13,7 +13,7 @@ Project goals, stack decisions, and security requirements live in [`CLAUDE.md`](
 | Owner authentication | Login, logout, session refresh, server-side owner checks. The owner must be [registered](#owner-account) |
 | Admin dashboard | `/admin`: post list filtered by status, with counts and pagination; sign out |
 | Post editing and publishing | Markdown editor with live preview; create, edit, save drafts, publish, schedule, unpublish, archive, delete (see [Writing and publishing](#writing-and-publishing)) |
-| Guest comments and reactions | Schema ready; no submission endpoints, so readers cannot comment or react |
+| Guest comments and reactions | Likes and moderated guest comments on published articles; moderation at `/admin/comments` (see [Reader engagement](#reader-engagement)). Needs the two server-only secrets below |
 | Image upload and display | Cover and inline image upload in the editor; published images served through `/media` (see [Images](#images)). Posts without a cover show generated artwork |
 
 The database currently has **no posts**, so the homepage shows its empty state until
@@ -24,15 +24,24 @@ are still placeholders; edit them in `src/config/site.ts` and `src/app/page.tsx`
 ## Setup
 
 1. `npm install`
-2. Copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL` and
-   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the Supabase dashboard
-   (**Project Settings → API Keys**, the `sb_publishable_…` key). Both are public values.
-   The app needs no secret key yet; never put one in a `NEXT_PUBLIC_*` variable.
+2. Copy `.env.example` to `.env.local` and fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the
+     Supabase dashboard (**Project Settings → API Keys**, the `sb_publishable_…` key).
+     Both are public values.
+   - `SUPABASE_SECRET_KEY`: the `sb_secret_…` key from the same page. **Server-only**;
+     it is used solely to call the reader-engagement database functions.
+   - `ENGAGEMENT_HASH_SECRET`: at least 32 random characters (command in
+     `.env.example`). **Server-only.**
+
+   Never put a secret in a `NEXT_PUBLIC_*` variable. Without the two secrets the site
+   still works, but the like button is hidden and the comment form says comments are
+   closed.
 3. Register the owner account ([below](#owner-account)), then run `npm run dev` and
    sign in at `/admin/login`.
 
 The production build reads Supabase to prerender pages, so the env vars must be set
-wherever `npm run build` runs.
+wherever `npm run build` runs. Whether the comment form is shown is decided when an
+article is prerendered, so rebuild after adding the secrets.
 
 ## Commands
 
@@ -44,7 +53,11 @@ npm run build      # production build
 npm start          # serve the production build
 ```
 
-No test runner is configured yet; verification has been manual so far.
+No test runner is configured yet. Verification so far: manual browser testing of
+earlier stages, plus for reader engagement (October 2026) a rolled-back SQL test of
+the database functions and RLS, and an HTTP test script that called the real Server
+Actions of a production build (`next start`). Test data was deleted afterwards.
+Neither suite is checked in.
 
 ## Structure
 
@@ -54,8 +67,9 @@ src/
   app/                    routes (App Router)
     page.tsx              home feed: tiered 3 / 2 / 1-column grid
     page/[page]/page.tsx  older pages of the feed (/page/2, …)
-    blog/[slug]/page.tsx  article page
+    blog/[slug]/page.tsx  article page; actions.ts (reader likes and comments)
     admin/                owner area: page.tsx (dashboard + post list), login/, actions.ts (sign in/out)
+      comments/           moderation queue: page.tsx, actions.ts, moderation-controls.tsx
       posts/              new/, [id]/ (editor pages), actions.ts (save/delete), post-editor.tsx,
                           cover-image-field.tsx, upload-image.ts (browser upload helper)
       images/             route.ts (POST upload), [...path]/route.ts (owner-only image preview)
@@ -65,6 +79,7 @@ src/
     layout/               site header and footer
     posts/                cards, feed, pagination, cover fallback art
     article/              Markdown article renderer
+    engagement/           like button, comment list and form under articles
   config/site.ts          site name, tagline, page size (placeholders)
   lib/
     posts.ts              public data access (cached, anon client)
@@ -73,7 +88,11 @@ src/
     slug.ts, post-limits.ts  slug rules and field limits shared by editor and actions
     images.ts             image path format, limits, /media URL helpers (client-safe)
     image-validation.ts   server-only: identifies uploads by their bytes, reads dimensions
-    supabase/             env, public client, session client, proxy session refresh
+    engagement.ts         approved comments (cached), per-visitor like state
+    visitor.ts            server-only: visitor cookie and HMAC digests
+    comment-limits.ts     comment length/link limits shared by form and action
+    supabase/             env, public client, session client, service client
+                          (secret key, engagement RPCs only), proxy session refresh
     reading-time.ts, format.ts
   types/post.ts           content types used by components
   types/database.ts       generated Supabase types; regenerate after migrations
@@ -158,6 +177,7 @@ migrations; add a new one instead.
 | `20261010140857_post_images_storage.sql` | Private `post-images` storage bucket and owner-only storage policies |
 | `20261010143645_owner_check_and_scheduled_visibility.sql` | `public.is_blog_owner()` for the app's owner check; public reads also require `published_at <= now()` |
 | `20261010154237_post_image_references.sql` | `post_images` reference table kept in sync by a trigger; one storage read policy for images of visible published posts |
+| `20261010211200_reader_engagement.sql` | Comment/reaction insert triggers also require `published_at <= now()`; `private.rate_limits` and `private.hit_rate_limit()`; service-role-only `submit_guest_comment`, `set_post_reaction`, `get_post_reaction_state` |
 
 ### Access model
 
@@ -173,8 +193,9 @@ per role.
   they can manage posts and taxonomy, moderate comments (change `status` or delete;
   comment text cannot be edited), read and delete reactions, and manage files in
   `post-images`. Any other signed-in user is treated like an anonymous reader.
-- **Server-only code** (`service_role`) will insert guest comments and reactions after
-  validation and rate limiting. That key must never reach the browser.
+- **Server-only code** (`service_role`, via `SUPABASE_SECRET_KEY`) submits guest
+  comments and reactions, and only through three database functions that `anon` and
+  `authenticated` cannot execute. That key must never reach the browser.
 
 Database rules that hold regardless of caller:
 
@@ -225,8 +246,6 @@ settings. The Supabase security advisor currently reports it as off.
   Prefetching). Repeat requests return 404.
 - Category and tag archive routes (`/category/[slug]`, `/tag/[slug]`) are not built.
   Categories appear on cards and articles, tags on articles only.
-- The comment and reaction insert triggers check `status = 'published'` but not
-  `published_at <= now()`. Tighten them when those endpoints are built.
 - Saving a post is several PostgREST requests, not one transaction: categories and tags
   are created first, then the post row is written, then tag links are synced (adding
   before removing). If the last step fails, the post is saved and the editor reports
@@ -241,6 +260,85 @@ settings. The Supabase security advisor currently reports it as off.
   Remove them from the Supabase dashboard if needed.
 - Article pages don't yet add the cover as an Open Graph image; that needs an absolute
   site URL (`metadataBase`), planned with the SEO stage.
+
+## Reader engagement
+
+### What readers see
+
+- **Likes:** a single "Like" toggle under each article with the total count. Pressing
+  it again removes the like. The count updates immediately, then shows the server's
+  authoritative value.
+- **Comments:** approved comments, oldest first (up to 200 per article), then a form
+  with **Name** and **Comment**. No account or email. Comments are plain text: React
+  escapes them and nothing is parsed as Markdown or HTML. After sending, readers are
+  told the comment will appear once approved.
+
+### How it works
+
+| Piece | Role |
+| --- | --- |
+| `setReaction`, `submitComment` (`src/app/blog/[slug]/actions.ts`) | Public Server Actions. Validate with Zod, compute hashes on the server, call the database functions with the service client. Generic error messages only |
+| `submit_guest_comment()` | Checks that the post is public **now**, applies rate limits, inserts. The insert trigger forces `pending`, a server timestamp, and trimmed text |
+| `set_post_reaction()` | Checks that the post is public now, applies rate limits, inserts (`ON CONFLICT DO NOTHING`) or deletes the visitor's like, and returns the new state and count in the same transaction |
+| `get_post_reaction_state()` | Count plus "liked by this visitor" for the article page; no row for posts that aren't public |
+| Insert triggers | Reject comments and reactions on drafts, archived, and **scheduled** posts even if a caller skips the functions |
+
+All three functions are `SECURITY INVOKER` and executable by `service_role` only. A
+caller holding just the publishable key cannot reach them, cannot insert into
+`comments`/`reactions`, and cannot read reaction rows.
+
+**Visitor identity (privacy):** the first like sets an HttpOnly, `SameSite=Lax` cookie
+`reader_id` (Secure in production, one year) containing a random 256-bit id. The
+database stores only `HMAC-SHA256(ENGAGEMENT_HASH_SECRET, id)` in `reactions.reactor_hash`.
+Readers who never like anything get no cookie. Comments store only the name, text,
+and timestamp: no IP, email, cookie, or hash.
+
+**Rate limits** (fixed windows, counted in `private.rate_limits`, shared by all server
+instances). The "client" is `HMAC(secret, IP)`, kept at most two days and never stored
+with a comment or reaction.
+
+| Action | Limits |
+| --- | --- |
+| Comment | 3 per 10 min and 10 per day per client; 30 per hour per post; no new comments while 500 are pending |
+| Like / unlike | 20 changes per 10 min per visitor; 120 per hour per client; 50 new likes per day per client |
+
+Other spam controls: a hidden honeypot field (if filled, the bot gets the normal success
+message and nothing is stored), at most 3 links per comment, control and bidi-override
+characters stripped, name up to 80 and comment 2 to 4,000 characters (the database
+allows 5,000), and moderation before anything is public.
+
+### Moderation
+
+`/admin/comments` (linked from the dashboard with the pending count) lists comments
+by status: **Pending** (default), **Approved**, **Rejected**, 25 per page, newest
+first, with the post they belong to. Approve, reject (also "unapprove"), or delete
+(two-step). `moderateComment` calls `requireOwner()` first and writes with the owner's
+session, so RLS and the `status`-only column grant apply again. Each change calls
+`updateTag("comments")`, so public articles show the change on the next request.
+
+### Caching
+
+Approved comments are cached (`"use cache"`, tag `comments`) and prerender with the
+article. The like button reads the visitor cookie, so it is never cached and streams
+in behind its own `<Suspense>` boundary; the rest of the article stays static.
+
+### Limitations
+
+- **IP-based limits depend on the host.** The client IP comes from `x-real-ip` or the
+  first `x-forwarded-for` entry. Platforms like Vercel set these; behind a proxy that
+  passes client-supplied values through, they can be spoofed, and requests without
+  them share one "unknown" bucket.
+- Clearing cookies lets someone like again; the per-client "50 new likes per day"
+  limit bounds this, but someone with many IP addresses can still inflate counts.
+- The site-wide cap of 500 pending comments means a flood can temporarily block new
+  comments until you moderate. That protects the queue at the cost of availability.
+- No CAPTCHA. Add one only if spam gets past the honeypot, limits, and moderation.
+- Rejected comments are kept until deleted. Nothing deletes old comments automatically.
+- Like counts are not shown on homepage cards, and the admin post list does not show
+  per-post like or comment counts yet.
+- Comment author names are not unique or verified; anyone can use any name.
+- Changing `ENGAGEMENT_HASH_SECRET` resets every visitor's "liked" state (old likes
+  still count but can't be removed by their authors) and all rate-limit counters.
 
 ## Images
 
