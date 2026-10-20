@@ -131,6 +131,10 @@ newest 50 articles are prerendered at build time; older ones render on first vis
   verifies the JWT with `getClaims()` and asks the database whether that user is in
   `private.blog_owner`. Every future admin page, Server Action, and Route Handler
   must call `requireOwner()` first; RLS then enforces the same rule in the database.
+- **Forgotten password:** run `npm run reset-password` in an interactive terminal
+  from the project folder. It asks for the owner's email and a new password (typed
+  hidden, at least 12 characters) and sets it with the Admin API, using
+  `SUPABASE_SECRET_KEY` from `.env.local`. There is no public reset page.
 
 ## Writing and publishing
 
