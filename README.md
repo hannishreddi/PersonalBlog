@@ -20,9 +20,8 @@ Project goals, stack decisions, and security requirements live in [`CLAUDE.md`](
 | Reader features | Search, Topics page, About page, RSS feed, sitemap and robots, table of contents, reading progress bar, share/copy-link (see [Reader features](#reader-features)) |
 
 The site is "Hannish Reddi", written by A Hannish Reddi, and will be served at
-`https://hannishreddi.in`. Name, tagline, and author live in `src/config/site.ts`.
-The personal sections of the About page (`src/app/about/page.tsx`) are still marked
-"To be filled in".
+`https://hannishreddi.in`. Name, tagline, and author live in `src/config/site.ts`;
+the About page (`src/app/about/page.tsx`) holds the author's own details and contacts.
 
 ## Setup
 
@@ -367,7 +366,7 @@ Tokens live in `src/app/globals.css` and are shared by the public site and admin
 | --- | --- |
 | `/search?q=` | Postgres full-text search (title > excerpt > body) via a generated `search_vector` column with a GIN index (migration `20261020170052_post_search`). `websearch` syntax, so `"phrases"`, `or`, and `-exclude` work. Max 100 characters, 20 newest matches. `noindex`, and disallowed in robots.txt |
 | `/topics` | Every category and tag with published posts, with counts |
-| `/about` | The author and the blog. Personal sections are marked "To be filled in" until the owner supplies them |
+| `/about` | The author (details supplied by the owner), what the blog covers, and contact links (email, Instagram, GitHub) |
 | `/feed.xml` | RSS 2.0, newest 20 posts (title, excerpt, category, date) |
 | `/sitemap.xml`, `/robots.txt` | Published posts, topics, and static pages only; `/admin` disallowed |
 | Table of contents | On articles with 3+ Markdown headings: collapsible box on small screens, sticky side column on wide ones. Heading ids come from one remark plugin (`src/lib/headings.ts`) used for both rendering and the list, so links always match |
