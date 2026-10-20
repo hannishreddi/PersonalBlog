@@ -102,6 +102,7 @@ export type Database = {
           excerpt: string;
           id: string;
           published_at: string | null;
+          search_vector: unknown;
           slug: string;
           status: string;
           title: string;
@@ -118,6 +119,7 @@ export type Database = {
           excerpt?: string;
           id?: string;
           published_at?: string | null;
+          search_vector?: unknown;
           slug: string;
           status?: string;
           title: string;
@@ -134,6 +136,7 @@ export type Database = {
           excerpt?: string;
           id?: string;
           published_at?: string | null;
+          search_vector?: unknown;
           slug?: string;
           status?: string;
           title?: string;

@@ -13,7 +13,7 @@ const initialState: CommentFormState = {
 };
 
 const inputClass =
-  "mt-2 block w-full rounded-xl border border-rule-strong bg-paper-raised px-4 py-2.5 font-sans text-base text-ink placeholder:text-ink-muted aria-[invalid=true]:border-accent";
+  "mt-2 block w-full rounded-xl border-2 border-edge bg-paper-raised px-4 py-2.5 font-sans text-base text-ink placeholder:text-ink-muted focus-visible:shadow-[4px_4px_0_var(--shadow)] aria-[invalid=true]:border-accent aria-[invalid=true]:bg-accent-soft";
 
 export function CommentForm({ postId }: { postId: string }) {
   const [state, formAction, pending] = useActionState(submitComment, initialState);
@@ -27,8 +27,8 @@ export function CommentForm({ postId }: { postId: string }) {
       {state.message && (
         <p
           role={state.status === "error" ? "alert" : "status"}
-          className={`rounded-xl border px-4 py-3 text-sm text-ink ${
-            state.status === "error" ? "border-accent/40 bg-accent-soft" : "border-rule-strong bg-paper-raised"
+          className={`rounded-xl border-2 px-4 py-3 text-sm text-ink ${
+            state.status === "error" ? "border-accent bg-accent-soft" : "border-edge bg-peach"
           }`}
         >
           {state.message}
@@ -44,7 +44,7 @@ export function CommentForm({ postId }: { postId: string }) {
       </div>
 
       <div>
-        <label htmlFor="comment-name" className="block text-sm font-medium text-ink">
+        <label htmlFor="comment-name" className="block text-sm font-semibold text-ink">
           Name
         </label>
         <input
@@ -71,7 +71,7 @@ export function CommentForm({ postId }: { postId: string }) {
       </div>
 
       <div>
-        <label htmlFor="comment-content" className="block text-sm font-medium text-ink">
+        <label htmlFor="comment-content" className="block text-sm font-semibold text-ink">
           Comment
         </label>
         <textarea
@@ -100,7 +100,7 @@ export function CommentForm({ postId }: { postId: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="cursor-pointer rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper transition-opacity disabled:cursor-wait disabled:opacity-60"
+          className="btn btn-primary sticker sticker-hover disabled:cursor-wait disabled:opacity-60"
         >
           {pending ? "Sending…" : "Send comment"}
         </button>

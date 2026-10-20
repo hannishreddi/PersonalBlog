@@ -8,6 +8,8 @@ export type CardTier = "large" | "medium" | "compact";
 
 interface TierStyle {
   card: string;
+  /** Surface colour: the newest posts sit on peach, older ones on cream. */
+  surface: string;
   cover: string;
   radius: string;
   coverRadius: string;
@@ -19,15 +21,17 @@ interface TierStyle {
 const TIER_STYLES: Record<CardTier, TierStyle> = {
   large: {
     card: "gap-5 p-3 pb-6",
+    surface: "bg-peach",
     cover: "aspect-[4/3]",
     radius: "rounded-3xl",
     coverRadius: "rounded-[1.1rem]",
-    title: "text-[1.7rem] leading-[1.15] sm:text-3xl",
+    title: "text-[1.75rem] leading-[1.12] sm:text-[2rem]",
     excerpt: "text-[1.02rem] leading-relaxed",
     sizes: "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw",
   },
   medium: {
     card: "gap-4 p-3 pb-5",
+    surface: "bg-paper-raised",
     cover: "aspect-[16/10]",
     radius: "rounded-2xl",
     coverRadius: "rounded-xl",
@@ -37,6 +41,7 @@ const TIER_STYLES: Record<CardTier, TierStyle> = {
   },
   compact: {
     card: "gap-3 p-2.5 pb-4",
+    surface: "bg-paper-raised",
     cover: "aspect-[2/1]",
     radius: "rounded-xl",
     coverRadius: "rounded-lg",
@@ -63,7 +68,7 @@ export function PostCard({ post, tier, wideOnTablet = false, priority = false }:
 
   return (
     <article
-      className={`group relative flex h-full flex-col border border-rule bg-paper-raised transition-colors duration-200 hover:border-rule-strong has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-focus ${style.card} ${style.radius} ${
+      className={`group sticker sticker-hover relative flex h-full flex-col has-[[data-card-link]:focus-visible]:outline-3 has-[[data-card-link]:focus-visible]:outline-offset-4 has-[[data-card-link]:focus-visible]:outline-focus ${style.surface} ${style.card} ${style.radius} ${
         wideOnTablet ? "md:max-lg:flex-row md:max-lg:items-center md:max-lg:pb-3" : ""
       }`}
     >
@@ -80,16 +85,23 @@ export function PostCard({ post, tier, wideOnTablet = false, priority = false }:
 
       <div className="flex flex-1 flex-col gap-2.5 px-2">
         {post.category && (
-          <p className="text-xs font-medium tracking-[0.14em] text-accent uppercase">
-            {post.category.name}
+          <p>
+            {/* Sits above the stretched title link so it stays clickable. */}
+            <Link
+              href={`/category/${post.category.slug}`}
+              className="relative z-10 inline-block -rotate-2 rounded-full border-2 border-edge bg-orange px-2.5 py-0.5 text-xs font-bold tracking-[0.08em] text-on-orange uppercase transition-transform hover:rotate-0"
+            >
+              {post.category.name}
+            </Link>
           </p>
         )}
 
-        <h3 className={`font-serif font-medium tracking-[-0.01em] text-balance text-ink ${style.title}`}>
+        <h3 className={`font-serif font-semibold tracking-[-0.015em] text-balance text-ink ${style.title}`}>
           {/* The ::after pseudo-element stretches the link over the whole card. */}
           <Link
             href={`/blog/${post.slug}`}
-            className="decoration-accent/60 decoration-1 underline-offset-4 after:absolute after:inset-0 after:content-[''] group-hover:underline focus-visible:outline-none"
+            data-card-link
+            className="decoration-orange decoration-2 underline-offset-4 after:absolute after:inset-0 after:content-[''] group-hover:underline focus-visible:outline-none"
           >
             {post.title}
           </Link>

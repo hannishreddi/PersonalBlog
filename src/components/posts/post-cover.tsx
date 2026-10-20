@@ -16,7 +16,7 @@ interface PostCoverProps {
 /** A cover image, or the generated fallback when a post has none. */
 export function PostCover({ slug, image, aspectClass, roundedClass, sizes, priority }: PostCoverProps) {
   return (
-    <div className={`relative overflow-hidden bg-paper-sunk ${aspectClass} ${roundedClass}`}>
+    <div className={`relative overflow-hidden border-2 border-edge bg-paper-sunk ${aspectClass} ${roundedClass}`}>
       {image ? (
         <Image
           src={image.src}

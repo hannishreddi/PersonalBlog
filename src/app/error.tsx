@@ -15,8 +15,8 @@ export default function Error({
 
   return (
     <div className="mx-auto flex max-w-xl flex-col items-start px-5 py-24 sm:px-8 sm:py-32">
-      <p className="text-xs font-medium tracking-[0.18em] text-ink-muted uppercase">Error</p>
-      <h1 className="mt-4 font-serif text-4xl font-normal tracking-[-0.02em] text-ink sm:text-5xl">
+      <p className="font-hand text-3xl text-accent -rotate-2">uh oh…</p>
+      <h1 className="mt-4 font-serif text-4xl font-bold tracking-[-0.03em] text-ink sm:text-5xl">
         Something went wrong.
       </h1>
       <p className="mt-5 text-lg leading-relaxed text-ink-soft">
@@ -25,7 +25,7 @@ export default function Error({
       <button
         type="button"
         onClick={() => retry()}
-        className="mt-8 cursor-pointer rounded-full border border-rule-strong px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-paper-raised"
+        className="btn btn-primary sticker sticker-hover mt-8"
       >
         Try again
       </button>

@@ -36,7 +36,7 @@ export default async function ArchivePage(props: PageProps<"/page/[page]">) {
 
   return (
     <div className="mx-auto max-w-6xl px-5 pt-14 sm:px-8 sm:pt-20">
-      <h1 className="mb-12 font-serif text-4xl font-normal tracking-[-0.02em] text-ink sm:text-5xl">
+      <h1 className="mb-12 font-serif text-4xl font-bold tracking-[-0.03em] text-ink sm:text-5xl">
         Older writing
       </h1>
       <section aria-labelledby="feed-heading">

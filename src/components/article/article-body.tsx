@@ -2,6 +2,7 @@ import Image from "next/image";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { remarkHeadingIds } from "@/lib/headings";
 import { adminMediaUrl, parseMediaUrl } from "@/lib/images";
 
 /*
@@ -66,13 +67,15 @@ function components(preview: boolean): Components {
   };
 }
 
+const remarkPlugins = [remarkGfm, remarkHeadingIds];
+
 const publicComponents = components(false);
 const previewComponents = components(true);
 
 export function ArticleBody({ markdown, preview = false }: { markdown: string; preview?: boolean }) {
   return (
     <div className="article-prose">
-      <Markdown remarkPlugins={[remarkGfm]} components={preview ? previewComponents : publicComponents}>
+      <Markdown remarkPlugins={remarkPlugins} components={preview ? previewComponents : publicComponents}>
         {markdown}
       </Markdown>
     </div>

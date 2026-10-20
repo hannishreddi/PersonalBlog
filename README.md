@@ -15,11 +15,14 @@ Project goals, stack decisions, and security requirements live in [`CLAUDE.md`](
 | Post editing and publishing | Markdown editor with live preview; create, edit, save drafts, publish, schedule, unpublish, archive, delete (see [Writing and publishing](#writing-and-publishing)) |
 | Guest comments and reactions | Likes and moderated guest comments on published articles; moderation at `/admin/comments` (see [Reader engagement](#reader-engagement)). Needs the two server-only secrets below |
 | Image upload and display | Cover and inline image upload in the editor; published images served through `/media` (see [Images](#images)). Posts without a cover show generated artwork |
+| Content discovery | Category and tag archives with pagination, clickable categories and tags, related articles under each post (see [Content discovery](#content-discovery)) |
+| Design system | Peach/orange palette, Fraunces + Bricolage Grotesque + Caveat, light/dark theme toggle (see [Design](#design)) |
+| Reader features | Search, Topics page, About page (placeholder copy), RSS feed, sitemap and robots, table of contents, reading progress bar, share/copy-link (see [Reader features](#reader-features)) |
 
-The database currently has **no posts**, so the homepage shows its empty state until
-the first post is published from `/admin`.
+The database has 3 published posts (October 2026).
 The publication name ("The Quiet Margin"), tagline, homepage intro, and author label
-are still placeholders; edit them in `src/config/site.ts` and `src/app/page.tsx`.
+are still placeholders, as is the About page; edit them in `src/config/site.ts`,
+`src/app/page.tsx`, and `src/app/about/page.tsx`.
 
 ## Setup
 
@@ -32,6 +35,12 @@ are still placeholders; edit them in `src/config/site.ts` and `src/app/page.tsx`
      it is used solely to call the reader-engagement database functions.
    - `ENGAGEMENT_HASH_SECRET`: at least 32 random characters (command in
      `.env.example`). **Server-only.**
+   - `SITE_URL` (optional): the public origin, e.g. `https://example.com`. Used as
+     `metadataBase` for canonical URLs on articles and archives. When unset, pages
+     omit canonical links instead of guessing a host. Set it in production builds:
+     the sitemap is empty, the RSS autodiscovery link and the X/Bluesky/LinkedIn/email
+     share links are hidden, and the feed falls back to the request's own origin
+     until it is set.
 
    Never put a secret in a `NEXT_PUBLIC_*` variable. Without the two secrets the site
    still works, but the like button is hidden and the comment form says comments are
@@ -67,6 +76,8 @@ src/
   app/                    routes (App Router)
     page.tsx              home feed: tiered 3 / 2 / 1-column grid
     page/[page]/page.tsx  older pages of the feed (/page/2, …)
+    category/[slug]/      category archive (page.tsx, page/[page]/, not-found.tsx)
+    tag/[slug]/           tag archive, same structure
     blog/[slug]/page.tsx  article page; actions.ts (reader likes and comments)
     admin/                owner area: page.tsx (dashboard + post list), login/, actions.ts (sign in/out)
       comments/           moderation queue: page.tsx, actions.ts, moderation-controls.tsx
@@ -77,7 +88,7 @@ src/
     not-found.tsx, error.tsx
   components/
     layout/               site header and footer
-    posts/                cards, feed, pagination, cover fallback art
+    posts/                cards, feed, pagination, cover fallback art, archive view and not-found
     article/              Markdown article renderer
     engagement/           like button, comment list and form under articles
   config/site.ts          site name, tagline, page size (placeholders)
@@ -93,6 +104,8 @@ src/
     comment-limits.ts     comment length/link limits shared by form and action
     supabase/             env, public client, session client, service client
                           (secret key, engagement RPCs only), proxy session refresh
+    archives.ts           archive paths, page-number parsing, archive metadata
+    site-url.ts           optional SITE_URL and canonical helper
     reading-time.ts, format.ts
   types/post.ts           content types used by components
   types/database.ts       generated Supabase types; regenerate after migrations
@@ -244,8 +257,8 @@ settings. The Supabase security advisor currently reports it as off.
 - The first request for an unknown article slug or page number streams the
   not-found page with HTTP 200 and a `noindex` tag (Next.js streaming with Partial
   Prefetching). Repeat requests return 404.
-- Category and tag archive routes (`/category/[slug]`, `/tag/[slug]`) are not built.
-  Categories appear on cards and articles, tags on articles only.
+- The same first-request behaviour applies to unknown or empty category and tag
+  archives and out-of-range archive pages.
 - Saving a post is several PostgREST requests, not one transaction: categories and tags
   are created first, then the post row is written, then tag links are synced (adding
   before removing). If the last step fails, the post is saved and the editor reports
@@ -260,6 +273,110 @@ settings. The Supabase security advisor currently reports it as off.
   Remove them from the Supabase dashboard if needed.
 - Article pages don't yet add the cover as an Open Graph image; that needs an absolute
   site URL (`metadataBase`), planned with the SEO stage.
+
+## Content discovery
+
+### Routes
+
+| Route | Shows |
+| --- | --- |
+| `/category/<slug>` | Published posts in that category, newest first, 9 per page |
+| `/tag/<slug>` | Published posts with that tag, newest first, 9 per page |
+| `/category/<slug>/page/<n>`, `/tag/<slug>/page/<n>` | Later pages; `/page/1` redirects to the archive itself |
+
+Each archive shows a "Category" or "Tag" label, the term's name as the heading
+(screen readers hear "Category: Essays" / "Tagged “reflection”"), the number of
+published articles, compact cards, and newer/older pagination. A link back to all
+writing sits above the heading.
+
+Categories link to their archive from cards (homepage, feed pages, archives, related
+articles) and from the article header. Tags link from the list under each article;
+cards don't show tags. The category link on a card sits above the card's stretched
+title link, and only the title link draws the card-wide focus outline.
+
+### Not found and empty archives
+
+Unknown slugs, malformed slugs, out-of-range or malformed page numbers, and categories
+or tags with **no published posts** all show the same "Nothing to read here yet" page
+(HTTP 404, `noindex`) with a link back to the feed. Categories and tags are created
+from the editor before a post is published, and their rows are publicly readable, so
+showing an empty archive would reveal the name of a term used only by drafts or
+scheduled posts. Treating it as not found avoids that.
+
+### Related articles
+
+Under each article, up to three published posts that share its category or any of its
+tags, ranked by how much they share (the category counts once, each shared tag once),
+then newest first. The article itself is excluded. The section is omitted when nothing
+is related; it is never padded with unrelated posts. The newer/older links can point at
+the same posts.
+
+### Data and caching
+
+All discovery queries live in `src/lib/posts.ts` (`getArchivePage`, `getArchiveSlugs`,
+`getRelatedPosts`) and use the cookie-less anon client, so RLS limits them to posts that
+are published with `published_at <= now()`; drafts, archived, and scheduled posts never
+reach archives, related lists, counts, or metadata. Tag archives filter with a second,
+inner-joined `post_tags` embedding so each card still receives all of its tags. Results
+are cached like the rest of the module (`"use cache"`, tag `posts`, a few minutes); post
+saves already call `updateTag("posts")`. Renaming a category or tag in the Supabase
+dashboard shows up within the cache lifetime.
+
+Archives for the categories and tags used by the newest 50 articles are prerendered at
+build time; others, and all later archive pages, render on first request.
+
+Archive metadata: title (`Category: Essays · …`, `Tagged “reflection”, page 2 · …`),
+a description, and a canonical URL for the exact page when `SITE_URL` is set. Article
+pages now also get a canonical URL when `SITE_URL` is set.
+
+No migration was needed: the existing indexes `posts_category_published_idx` and
+`post_tags_tag_id_idx` cover the archive queries.
+
+### Verification (October 2026)
+
+Against a production build (`next start`) with the live data (3 published posts):
+category and tag archives, titles, descriptions, counts, and canonical URLs (with a
+test `SITE_URL`); unknown, malformed, and out-of-range slugs and pages (404 with
+`noindex` on repeat requests); `/page/1` redirects; related articles on all three
+posts. Pagination was tested with the page size temporarily set to 1, then reverted.
+Published-only visibility was tested in SQL as the `anon` role against draft, archived,
+and scheduled posts and a draft-only category and tag, inside a transaction that was
+rolled back. Not yet checked in a real browser: the responsive layout and keyboard
+focus of the new links.
+
+## Design
+
+Tokens live in `src/app/globals.css` and are shared by the public site and admin.
+
+- **Palette:** cream page (`--paper`), peach `#FFD2AF` blocks (`--peach`: header,
+  footer, hero, newest cards, blockquotes), orange `#F97830` (`--orange`) for buttons,
+  category stickers, and shapes, deep-brown ink for text. Orange text fails contrast
+  on light backgrounds (about 2:1), so `--accent` (`#9C3D0A`, ≥ 4.9:1 on peach) is
+  used where text needs the accent colour, and text on orange is always dark.
+- **Type:** Fraunces with its `SOFT`/`WONK` axes turned up for headings (`font-serif`),
+  and turned down for article body text so long reads stay calm; Bricolage Grotesque
+  for UI (`font-sans`); Caveat for small handwritten notes (`font-hand`).
+- **Stickers:** `sticker` (2px outline + hard orange offset shadow), `sticker-hover`,
+  and `btn` / `btn-primary` / `btn-secondary` utilities.
+- **Dark mode:** follows the OS by default. The header toggle stores an explicit
+  choice in `localStorage` under `theme` (nothing is sent to the server), and an
+  inline script in `<head>` applies it before paint so there's no flash.
+
+## Reader features
+
+| Route / feature | Notes |
+| --- | --- |
+| `/search?q=` | Postgres full-text search (title > excerpt > body) via a generated `search_vector` column with a GIN index (migration `20261020170052_post_search`). `websearch` syntax, so `"phrases"`, `or`, and `-exclude` work. Max 100 characters, 20 newest matches. `noindex`, and disallowed in robots.txt |
+| `/topics` | Every category and tag with published posts, with counts |
+| `/about` | **Placeholder copy**, clearly labelled; replace with real details |
+| `/feed.xml` | RSS 2.0, newest 20 posts (title, excerpt, category, date) |
+| `/sitemap.xml`, `/robots.txt` | Published posts, topics, and static pages only; `/admin` disallowed |
+| Table of contents | On articles with 3+ Markdown headings: collapsible box on small screens, sticky side column on wide ones. Heading ids come from one remark plugin (`src/lib/headings.ts`) used for both rendering and the list, so links always match |
+| Reading progress | CSS scroll-driven animation, no JavaScript; hidden where unsupported and for reduced-motion users |
+| Share | Copy link always; X, Bluesky, LinkedIn, and email links once `SITE_URL` is set. Plain links, no third-party scripts |
+
+Search runs through the anon client, so RLS still limits it to published posts. A
+newsletter was deliberately not added: it needs a third-party email provider.
 
 ## Reader engagement
 

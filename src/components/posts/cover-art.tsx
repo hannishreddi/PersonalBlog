@@ -5,11 +5,11 @@
  */
 
 const PALETTE = [
-  "var(--art-clay)",
-  "var(--art-sage)",
-  "var(--art-ochre)",
-  "var(--art-slate)",
-  "var(--art-plum)",
+  "var(--art-orange)",
+  "var(--art-ink)",
+  "var(--art-cream)",
+  "var(--art-tangerine)",
+  "var(--art-burnt)",
 ] as const;
 
 function hash(input: string): number {
@@ -29,7 +29,7 @@ export function CoverArt({ seed, className }: { seed: string; className?: string
   const h = hash(seed);
   // Independent bits drive shape, colours, and mirroring so the
   // same shape does not always arrive in the same colours.
-  const variant = h % 5;
+  const variant = h % 7;
   const colorSeed = (h >>> 8) % PALETTE.length;
   const step = 1 + ((h >>> 16) % (PALETTE.length - 1));
   const a = pick(colorSeed, 0);
@@ -97,6 +97,36 @@ export function CoverArt({ seed, className }: { seed: string; className?: string
           <circle cx="90" cy="80" r="26" fill={c} />
         </>
       )}
+        {variant === 5 && (
+          // A big squiggle across a sun.
+          <>
+            <circle cx="290" cy="110" r="64" fill={a} />
+            <path
+              d="M-10 210 Q40 150 90 210 T190 210 T290 210 T390 210 T490 210"
+              fill="none"
+              stroke={b}
+              strokeWidth="26"
+              strokeLinecap="round"
+            />
+          </>
+        )}
+        {variant === 6 && (
+          // A wobbly flower.
+          <>
+            {Array.from({ length: 6 }, (_, i) => (
+              <ellipse
+                key={i}
+                cx="200"
+                cy="95"
+                rx="34"
+                ry="62"
+                fill={i % 2 === 0 ? a : b}
+                transform={`rotate(${i * 60} 200 150)`}
+              />
+            ))}
+            <circle cx="200" cy="150" r="34" fill={c} />
+          </>
+        )}
       </g>
     </svg>
   );

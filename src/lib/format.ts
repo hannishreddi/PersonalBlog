@@ -23,6 +23,11 @@ export function formatDateTimeUtc(iso: string): string {
   return `${dateTimeFormatter.format(new Date(iso))} UTC`;
 }
 
+/** A tag as a hashtag, without doubling a "#" the owner already typed. */
+export function formatTagName(name: string): string {
+  return `#${name.replace(/^#+/, "")}`;
+}
+
 export function formatReadingTime(minutes: number): string {
   return `${minutes} min read`;
 }

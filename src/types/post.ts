@@ -11,6 +11,11 @@ export interface Category {
   name: string;
 }
 
+export interface Tag {
+  slug: string;
+  name: string;
+}
+
 export interface CoverImage {
   /** `/media/<storage path>`, served by the app; never an arbitrary URL. */
   src: string;
@@ -27,7 +32,7 @@ export interface Post {
   contentMarkdown: string;
   coverImage: CoverImage | null;
   category: Category | null;
-  tags: string[];
+  tags: Tag[];
   status: PostStatus;
   /** ISO 8601 timestamps. */
   createdAt: string;

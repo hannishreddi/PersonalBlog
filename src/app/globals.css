@@ -1,58 +1,105 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Warm paper and ink, with a single muted clay accent.
- * Public pages and the future admin UI share these tokens.
+ * Design tokens. Cream paper and brown ink, with peach (#FFD2AF) blocks and an
+ * orange (#F97830) accent. Orange is never used for body text on light
+ * backgrounds (it fails contrast); `--accent` is the text-safe darker orange.
+ * Public pages and the admin UI share these tokens.
+ *
+ * Theme: follows the OS by default; `data-theme` on <html> (set by the theme
+ * toggle and an inline script before paint) overrides it.
  */
 :root {
-  --paper: #f7f4ee;
-  --paper-raised: #fdfbf7;
-  --paper-sunk: #efeae1;
-  --ink: #1d1b18;
-  --ink-soft: #4a453e;
-  --ink-muted: #6e675d;
-  --rule: #e2dbcf;
-  --rule-strong: #cfc6b7;
-  --accent: #9b4a2c;
-  --accent-soft: #f1e2d8;
-  --focus: #1f5f8b;
+  --paper: #fff6ee;
+  --paper-raised: #fffcf8;
+  --paper-sunk: #ffe7d4;
+  --peach: #ffd2af;
+  --orange: #f97830;
+  /* Text on orange stays dark in both themes. */
+  --on-orange: #2a1608;
+  --ink: #2a1608;
+  --ink-soft: #573521;
+  --ink-muted: #7a4a2e;
+  --rule: #f2c7a5;
+  --rule-strong: #a8704c;
+  --accent: #9c3d0a;
+  --accent-soft: #ffd2af;
+  --focus: #2a1608;
+  /* Sticker outlines and their offset shadows. */
+  --edge: #2a1608;
+  --shadow: #f97830;
 
   /* Cover-art palette (fallback illustrations). */
-  --art-clay: #c9805f;
-  --art-sage: #8fa38a;
-  --art-ochre: #d4a94f;
-  --art-slate: #6f8399;
-  --art-plum: #93707f;
-  --art-ground: #ebe4d7;
+  --art-ground: #ffd2af;
+  --art-orange: #f97830;
+  --art-ink: #2a1608;
+  --art-cream: #fff6ee;
+  --art-tangerine: #fba368;
+  --art-burnt: #c4541a;
+
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #171614;
-    --paper-raised: #1f1d1a;
-    --paper-sunk: #12110f;
-    --ink: #ece7de;
-    --ink-soft: #c9c2b6;
-    --ink-muted: #a39b8e;
-    --rule: #2f2c27;
-    --rule-strong: #403b34;
-    --accent: #e09a78;
-    --accent-soft: #3a261d;
-    --focus: #8cc3ea;
+  :root:not([data-theme="light"]) {
+    --paper: #1c120b;
+    --paper-raised: #28190f;
+    --paper-sunk: #2f1d11;
+    --peach: #3a2416;
+    --ink: #ffebdc;
+    --ink-soft: #ebcdb5;
+    --ink-muted: #c9a68c;
+    --rule: #3e2819;
+    --rule-strong: #8a6248;
+    --accent: #ff9a5c;
+    --accent-soft: #4a2a15;
+    --focus: #ffd2af;
+    --edge: #ffd2af;
+    --shadow: #f97830;
 
-    --art-clay: #a8664a;
-    --art-sage: #6f8169;
-    --art-ochre: #b08a3c;
-    --art-slate: #5a6b7e;
-    --art-plum: #775b67;
-    --art-ground: #2a2722;
+    --art-ground: #3a2416;
+    --art-ink: #1c120b;
+    --art-cream: #ffd2af;
+    --art-tangerine: #d9864f;
+    --art-burnt: #a8461a;
+
+    color-scheme: dark;
   }
+}
+
+/* Same values as above, for an explicit choice that overrides the OS. */
+:root[data-theme="dark"] {
+  --paper: #1c120b;
+  --paper-raised: #28190f;
+  --paper-sunk: #2f1d11;
+  --peach: #3a2416;
+  --ink: #ffebdc;
+  --ink-soft: #ebcdb5;
+  --ink-muted: #c9a68c;
+  --rule: #3e2819;
+  --rule-strong: #8a6248;
+  --accent: #ff9a5c;
+  --accent-soft: #4a2a15;
+  --focus: #ffd2af;
+  --edge: #ffd2af;
+  --shadow: #f97830;
+
+  --art-ground: #3a2416;
+  --art-ink: #1c120b;
+  --art-cream: #ffd2af;
+  --art-tangerine: #d9864f;
+  --art-burnt: #a8461a;
+
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);
   --color-paper-sunk: var(--paper-sunk);
+  --color-peach: var(--peach);
+  --color-orange: var(--orange);
+  --color-on-orange: var(--on-orange);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
@@ -61,14 +108,63 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-focus: var(--focus);
+  --color-edge: var(--edge);
+  --color-shadow: var(--shadow);
 
-  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  /* Fraunces with its "soft" and "wonky" axes turned up for display type. */
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-serif--font-variation-settings: "SOFT" 100, "WONK" 1;
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-hand: var(--font-caveat), "Comic Sans MS", cursive;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
+/* An outlined "sticker" with a hard offset shadow. */
+@utility sticker {
+  border: 2px solid var(--edge);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+/* Lifts a sticker on hover; pair with `sticker`. */
+@utility sticker-hover {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--shadow);
+  }
+  &:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--shadow);
+  }
+}
+
+/* Pill buttons. `btn-primary` is orange; `btn-secondary` is outlined. */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  cursor: pointer;
+}
+
+@utility btn-primary {
+  background: var(--orange);
+  color: var(--on-orange);
+}
+
+@utility btn-secondary {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
 html {
-  color-scheme: light dark;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -80,12 +176,12 @@ body {
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--ink);
+  background: var(--orange);
+  color: var(--on-orange);
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -101,12 +197,69 @@ body {
   }
 }
 
+/* The theme toggle shows the icon for the theme it switches to. */
+.theme-icon-light {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-light {
+  display: block;
+}
+:root[data-theme="dark"] .theme-icon-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-icon-light {
+    display: block;
+  }
+  :root:not([data-theme]) .theme-icon-dark {
+    display: none;
+  }
+}
+
+/*
+ * Reading progress bar, driven by page scroll with no JavaScript. Hidden in
+ * browsers without scroll-driven animations and for reduced-motion users.
+ */
+.reading-progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reading-progress {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 50;
+      height: 5px;
+      background: var(--orange);
+      transform-origin: 0 50%;
+      animation: reading-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+@keyframes reading-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Article headings land below the sticky-free header with some breathing room. */
+.article-prose :is(h2, h3)[id] {
+  scroll-margin-top: 1.5rem;
+}
+
 /*
  * Article typography. Scoped to rendered Markdown so it never leaks
- * into the surrounding UI.
+ * into the surrounding UI. Body text uses Fraunces with the wonky
+ * alternates off, so long reads stay calm.
  */
 .article-prose {
   font-family: var(--font-serif);
+  font-variation-settings: "SOFT" 50, "WONK" 0;
   font-size: 1.1875rem;
   line-height: 1.75;
   color: var(--ink);
@@ -118,41 +271,45 @@ body {
 
 .article-prose > p:first-child::first-letter {
   float: left;
-  font-size: 3.6em;
+  font-size: 3.8em;
   line-height: 0.82;
-  padding: 0.08em 0.1em 0 0;
+  padding: 0.08em 0.12em 0 0;
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 700;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
 }
 
 .article-prose h2,
 .article-prose h3 {
   font-family: var(--font-serif);
-  font-weight: 500;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.2;
   color: var(--ink);
 }
 
 .article-prose h2 {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   margin-top: 2.2em;
 }
 
 .article-prose h3 {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   margin-top: 1.8em;
 }
 
 .article-prose a {
   color: var(--accent);
   text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
 
 .article-prose a:hover {
-  text-decoration-thickness: 2px;
+  background: var(--accent-soft);
+  text-decoration-thickness: 3px;
 }
 
 .article-prose ul,
@@ -173,14 +330,19 @@ body {
 }
 
 .article-prose li::marker {
-  color: var(--ink-muted);
+  color: var(--orange);
+  font-weight: 700;
 }
 
 .article-prose blockquote {
-  border-left: 2px solid var(--accent);
-  padding: 0.1em 0 0.1em 1.2em;
+  position: relative;
+  border: 2px solid var(--edge);
+  border-radius: 1.25rem;
+  background: var(--peach);
+  padding: 1em 1.3em;
   font-style: italic;
-  color: var(--ink-soft);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
 }
 
 .article-prose hr {
@@ -190,9 +352,9 @@ body {
 }
 
 .article-prose hr::after {
-  content: "* * *";
+  content: "✺ ✺ ✺";
   letter-spacing: 0.6em;
-  color: var(--ink-muted);
+  color: var(--orange);
 }
 
 .article-prose code {
@@ -207,8 +369,8 @@ body {
   font-size: 0.95rem;
   line-height: 1.6;
   background: var(--paper-sunk);
-  border: 1px solid var(--rule);
-  border-radius: 10px;
+  border: 2px solid var(--edge);
+  border-radius: 12px;
   padding: 1rem 1.2rem;
   overflow-x: auto;
 }
@@ -222,9 +384,30 @@ body {
 .article-prose img {
   max-width: 100%;
   height: auto;
-  border-radius: 10px;
+  border-radius: 14px;
+  border: 2px solid var(--edge);
   /* Shows while an uploaded image (with reserved dimensions) loads. */
   background: var(--paper-sunk);
+}
+
+.article-prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+}
+
+.article-prose th,
+.article-prose td {
+  border: 1px solid var(--rule-strong);
+  padding: 0.4em 0.75em;
+  text-align: left;
+}
+
+.article-prose th {
+  background: var(--peach);
+  font-weight: 600;
 }
 
 .article-prose em {
@@ -232,7 +415,7 @@ body {
 }
 
 .article-prose strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
