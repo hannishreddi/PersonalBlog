@@ -1,7 +1,7 @@
 /**
- * Colour theme preference. "system" (no stored value) follows the OS; an
- * explicit choice is stored in localStorage and applied as `data-theme` on
- * <html>. Only this key is stored, and it never leaves the browser.
+ * Colour theme preference. With no stored value the site is light, whatever
+ * the OS prefers; an explicit choice is stored in localStorage and applied as
+ * `data-theme` on <html>. Only this key is stored, and it never leaves the browser.
  */
 export const THEME_STORAGE_KEY = "theme";
 

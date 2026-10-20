@@ -6,8 +6,8 @@
  * backgrounds (it fails contrast); `--accent` is the text-safe darker orange.
  * Public pages and the admin UI share these tokens.
  *
- * Theme: follows the OS by default; `data-theme` on <html> (set by the theme
- * toggle and an inline script before paint) overrides it.
+ * Theme: light by default, regardless of the OS; `data-theme="dark"` on <html>
+ * (set by the theme toggle and an inline script before paint) switches to dark.
  */
 :root {
   --paper: #fff6ee;
@@ -40,34 +40,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #1c120b;
-    --paper-raised: #28190f;
-    --paper-sunk: #2f1d11;
-    --peach: #3a2416;
-    --ink: #ffebdc;
-    --ink-soft: #ebcdb5;
-    --ink-muted: #c9a68c;
-    --rule: #3e2819;
-    --rule-strong: #8a6248;
-    --accent: #ff9a5c;
-    --accent-soft: #4a2a15;
-    --focus: #ffd2af;
-    --edge: #ffd2af;
-    --shadow: #f97830;
-
-    --art-ground: #3a2416;
-    --art-ink: #1c120b;
-    --art-cream: #ffd2af;
-    --art-tangerine: #d9864f;
-    --art-burnt: #a8461a;
-
-    color-scheme: dark;
-  }
-}
-
-/* Same values as above, for an explicit choice that overrides the OS. */
+/* Dark theme, applied only when the reader picks it with the toggle. */
 :root[data-theme="dark"] {
   --paper: #1c120b;
   --paper-raised: #28190f;
@@ -206,14 +179,6 @@ body {
 }
 :root[data-theme="dark"] .theme-icon-dark {
   display: none;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .theme-icon-light {
-    display: block;
-  }
-  :root:not([data-theme]) .theme-icon-dark {
-    display: none;
-  }
 }
 
 /*

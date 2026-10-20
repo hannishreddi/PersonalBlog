@@ -5,24 +5,16 @@ import { Moon, Sun } from "lucide-react";
 
 import { THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
+/** Light unless the reader has chosen dark; the OS preference is ignored. */
 function currentTheme(): Theme {
-  const explicit = document.documentElement.dataset.theme;
-  if (explicit === "light" || explicit === "dark") return explicit;
-  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
-/** Re-renders when the OS preference or the data-theme attribute changes. */
+/** Re-renders when the data-theme attribute changes. */
 function subscribe(onChange: () => void): () => void {
-  const media = window.matchMedia(DARK_QUERY);
-  media.addEventListener("change", onChange);
   const observer = new MutationObserver(onChange);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  return () => {
-    media.removeEventListener("change", onChange);
-    observer.disconnect();
-  };
+  return () => observer.disconnect();
 }
 
 /**
