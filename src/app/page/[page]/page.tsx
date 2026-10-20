@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
@@ -24,8 +25,21 @@ export async function generateMetadata(props: PageProps<"/page/[page]">): Promis
   return { title: `Older writing, page ${page}` };
 }
 
-export default async function ArchivePage(props: PageProps<"/page/[page]">) {
-  const { page: rawPage } = await props.params;
+export default function ArchivePage(props: PageProps<"/page/[page]">) {
+  return (
+    <div className="mx-auto max-w-6xl px-5 pt-14 sm:px-8 sm:pt-20">
+      <h1 className="mb-12 font-serif text-4xl font-bold tracking-[-0.03em] text-ink sm:text-5xl">
+        Older writing
+      </h1>
+      <Suspense fallback={<p className="text-ink-muted" role="status">Loading posts…</p>}>
+        <ArchiveFeed params={props.params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ArchiveFeed({ params }: { params: PageProps<"/page/[page]">["params"] }) {
+  const { page: rawPage } = await params;
   const pageNumber = parsePage(rawPage);
 
   if (pageNumber === 1) redirect("/");
@@ -35,21 +49,16 @@ export default async function ArchivePage(props: PageProps<"/page/[page]">) {
   if (!page) notFound();
 
   return (
-    <div className="mx-auto max-w-6xl px-5 pt-14 sm:px-8 sm:pt-20">
-      <h1 className="mb-12 font-serif text-4xl font-bold tracking-[-0.03em] text-ink sm:text-5xl">
-        Older writing
-      </h1>
-      <section aria-labelledby="feed-heading">
-        <FeedHeading id="feed-heading">
-          Page {page.page} of {page.totalPages}
-        </FeedHeading>
-        <PostFeed
-          posts={page.posts}
-          tiered={false}
-          startIndex={(page.page - 1) * siteConfig.postsPerPage}
-        />
-        <Pagination page={page.page} totalPages={page.totalPages} />
-      </section>
-    </div>
+    <section aria-labelledby="feed-heading">
+      <FeedHeading id="feed-heading">
+        Page {page.page} of {page.totalPages}
+      </FeedHeading>
+      <PostFeed
+        posts={page.posts}
+        tiered={false}
+        startIndex={(page.page - 1) * siteConfig.postsPerPage}
+      />
+      <Pagination page={page.page} totalPages={page.totalPages} />
+    </section>
   );
 }

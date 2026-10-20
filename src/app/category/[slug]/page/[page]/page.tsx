@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { ArchiveView } from "@/components/posts/archive-view";
+import { ArchiveFrame, ArchiveSkeleton, ArchiveView } from "@/components/posts/archive-view";
 import { archiveMetadata, archivePath, parsePageParam } from "@/lib/archives";
 import { getArchivePage, isTermSlug } from "@/lib/posts";
 
@@ -18,8 +19,18 @@ export async function generateMetadata(
   return archiveMetadata("category", slug, parsePageParam(page));
 }
 
-export default async function CategoryArchivePage(props: PageProps<"/category/[slug]/page/[page]">) {
-  const { slug, page: rawPage } = await props.params;
+export default function CategoryArchivePage(props: PageProps<"/category/[slug]/page/[page]">) {
+  return (
+    <ArchiveFrame>
+      <Suspense fallback={<ArchiveSkeleton />}>
+        <CategoryArchive params={props.params} />
+      </Suspense>
+    </ArchiveFrame>
+  );
+}
+
+async function CategoryArchive({ params }: { params: PageProps<"/category/[slug]/page/[page]">["params"] }) {
+  const { slug, page: rawPage } = await params;
   const pageNumber = parsePageParam(rawPage);
 
   // Only redirect well-formed slugs; anything else falls through to not-found.

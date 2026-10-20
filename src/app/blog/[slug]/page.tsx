@@ -190,7 +190,7 @@ async function ArticleContent({ params }: { params: ArticleParams }) {
       {related.length > 0 && (
         <section aria-labelledby="related-heading" className="mx-auto mt-16 max-w-6xl">
           <FeedHeading id="related-heading">Related writing</FeedHeading>
-          <PostFeed posts={related} tiered={false} />
+          <PostFeed posts={related} tiered={false} aboveFold={false} />
         </section>
       )}
     </>

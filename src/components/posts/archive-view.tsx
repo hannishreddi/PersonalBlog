@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -14,10 +15,14 @@ function articleCount(count: number): string {
   return `${count} published ${count === 1 ? "article" : "articles"}`;
 }
 
-/** A category or tag archive: heading, count, compact feed, pagination. */
-export function ArchiveView({ archive }: { archive: ArchivePage }) {
-  const { kind, term, page, totalPages, totalPosts } = archive;
+/*
+ * Archive routes render ArchiveFrame (URL-independent) immediately and stream
+ * ArchiveView inside <Suspense> so client navigations can show the frame
+ * instantly. Slugs from generateStaticParams are still fully prerendered.
+ */
 
+/** Page container and back link shared by every category and tag archive. */
+export function ArchiveFrame({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-6xl px-5 pt-10 sm:px-8 sm:pt-14">
       <Link
@@ -27,7 +32,29 @@ export function ArchiveView({ archive }: { archive: ArchivePage }) {
         <ArrowLeft aria-hidden="true" className="size-4" />
         All writing
       </Link>
+      {children}
+    </div>
+  );
+}
 
+export function ArchiveSkeleton() {
+  return (
+    <div role="status" aria-label="Loading archive" className="mt-10 mb-12 sm:mt-14">
+      <div className="space-y-4 motion-safe:animate-pulse">
+        <div className="h-6 w-24 rounded-full bg-rule" />
+        <div className="h-10 w-64 max-w-full rounded bg-rule sm:h-12" />
+        <div className="h-5 w-40 rounded bg-rule" />
+      </div>
+    </div>
+  );
+}
+
+/** A category or tag archive: heading, count, compact feed, pagination. */
+export function ArchiveView({ archive }: { archive: ArchivePage }) {
+  const { kind, term, page, totalPages, totalPosts } = archive;
+
+  return (
+    <>
       <header className="mt-10 mb-12 sm:mt-14">
         <p aria-hidden="true" className="inline-block -rotate-2 rounded-full border-2 border-edge bg-orange px-3 py-1 text-xs font-bold tracking-[0.08em] text-on-orange uppercase">
           {KIND_LABEL[kind]}
@@ -51,6 +78,6 @@ export function ArchiveView({ archive }: { archive: ArchivePage }) {
         />
         <Pagination page={page} totalPages={totalPages} basePath={archivePath(kind, term.slug)} />
       </section>
-    </div>
+    </>
   );
 }

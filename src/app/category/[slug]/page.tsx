@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ArchiveView } from "@/components/posts/archive-view";
+import { ArchiveFrame, ArchiveSkeleton, ArchiveView } from "@/components/posts/archive-view";
 import { archiveMetadata } from "@/lib/archives";
 import { getArchivePage, getArchiveSlugs } from "@/lib/posts";
 
@@ -18,8 +19,18 @@ export async function generateMetadata(props: PageProps<"/category/[slug]">): Pr
   return archiveMetadata("category", slug, 1);
 }
 
-export default async function CategoryPage(props: PageProps<"/category/[slug]">) {
-  const { slug } = await props.params;
+export default function CategoryPage(props: PageProps<"/category/[slug]">) {
+  return (
+    <ArchiveFrame>
+      <Suspense fallback={<ArchiveSkeleton />}>
+        <CategoryArchive params={props.params} />
+      </Suspense>
+    </ArchiveFrame>
+  );
+}
+
+async function CategoryArchive({ params }: { params: PageProps<"/category/[slug]">["params"] }) {
+  const { slug } = await params;
   const archive = await getArchivePage("category", slug, 1);
   if (!archive) notFound();
 

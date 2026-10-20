@@ -35,14 +35,19 @@ interface PostFeedProps {
   tiered?: boolean;
   /** Offset applied to list numbering on later pages. */
   startIndex?: number;
+  /**
+   * Preload the first cover, which is usually the Largest Contentful Paint.
+   * Turn off for feeds that start below the fold, like related posts.
+   */
+  aboveFold?: boolean;
 }
 
-export function PostFeed({ posts, tiered = true, startIndex = 0 }: PostFeedProps) {
+export function PostFeed({ posts, tiered = true, startIndex = 0, aboveFold = true }: PostFeedProps) {
   const tiers = toTiers(posts, tiered);
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
-      {tiers.map(({ tier, posts: tierPosts, start }) => (
+      {tiers.map(({ tier, posts: tierPosts, start }, tierIndex) => (
         // Each tier is its own ordered list, rendered in feed order, so
         // DOM order, tab order, and screen-reader order all match the
         // reverse-chronological feed at every breakpoint.
@@ -59,7 +64,7 @@ export function PostFeed({ posts, tiered = true, startIndex = 0 }: PostFeedProps
                   post={post}
                   tier={tier}
                   wideOnTablet={isLoneOnTablet}
-                  priority={tiered && tier === "large" && i === 0}
+                  priority={aboveFold && tierIndex === 0 && i === 0}
                 />
               </li>
             );
