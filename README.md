@@ -189,3 +189,8 @@ Results are cached and refreshed whenever a post or comment changes.
   correctly, as Vercel does.
 - The first request for an unknown slug streams a `noindex` not-found page with HTTP 200.
   Later requests return 404.
+
+## License
+
+The code is released under the [MIT License](./LICENSE). The blog's writing and images
+are stored in the database, not in this repository, and are not covered by it.

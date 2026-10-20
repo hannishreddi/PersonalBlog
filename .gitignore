@@ -41,6 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# AI assistant instructions (kept locally, not published)
+# AI assistant instructions and local tool config (kept locally, not published)
 CLAUDE.md
 AGENTS.md
+.claude/
+.mcp.json
+
+# local design notes
+/screenshot/
