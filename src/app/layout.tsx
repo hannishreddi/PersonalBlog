@@ -38,6 +38,15 @@ export const metadata: Metadata = {
     template: `%s · ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  authors: [{ name: siteConfig.authorLabel }],
+  // Shared by every page; pages add their own title, description, and URL.
+  // The default preview image comes from app/opengraph-image.tsx.
+  openGraph: {
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
   // Feed autodiscovery needs an absolute URL, so it waits for SITE_URL too.
   alternates: siteUrl
     ? { types: { "application/rss+xml": [{ url: "/feed.xml", title: siteConfig.name }] } }

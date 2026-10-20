@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowDown, Rss } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { FeedHeading } from "@/components/posts/feed-heading";
 import { Pagination } from "@/components/posts/pagination";
@@ -18,38 +18,32 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8">
-      <section aria-labelledby="intro-heading" className="py-10 sm:py-14 lg:py-16">
-        <div className="sticker relative overflow-hidden rounded-[2rem] bg-peach px-6 py-10 sm:px-10 sm:py-14 md:pr-48 lg:px-14 lg:py-16 lg:pr-64">
+      {/* Kept short so the newest writing shows on the first screen. */}
+      <section aria-labelledby="intro-heading" className="py-8 sm:py-10">
+        <div className="sticker relative overflow-hidden rounded-[2rem] bg-peach px-6 py-7 sm:px-10 sm:py-9 md:pr-44 lg:pr-56">
           <HeroDoodles />
-          <p className="relative -rotate-2 font-hand text-2xl text-accent sm:text-[1.75rem]">hello there, reader!</p>
+          <p className="relative -rotate-2 font-hand text-xl text-accent sm:text-2xl">hello there, reader!</p>
           <h1
             id="intro-heading"
-            className="relative mt-3 max-w-3xl font-serif text-[2.7rem] leading-[1.02] font-bold tracking-[-0.03em] text-balance text-ink sm:text-6xl lg:text-7xl"
+            className="relative mt-2 max-w-3xl font-serif text-[2.1rem] leading-[1.05] font-bold tracking-[-0.03em] text-balance text-ink sm:text-5xl"
           >
             {siteConfig.tagline}
           </h1>
-          <p className="relative mt-6 max-w-xl text-lg leading-relaxed text-pretty text-ink-soft">
-            A short introduction to this publication will live here: who writes it, and what readers
-            can expect. <span className="text-ink-muted">(Placeholder copy.)</span>
-          </p>
-          <div className="relative mt-8 flex flex-wrap gap-3">
-            <a href="#feed-heading" className="btn btn-primary sticker sticker-hover">
-              Start reading
-              <ArrowDown aria-hidden="true" className="size-4" />
-            </a>
-            <Link href="/about" className="btn btn-secondary sticker sticker-hover">
-              About this blog
+          <p className="relative mt-4 max-w-xl text-lg leading-relaxed text-pretty text-ink-soft">
+            A personal blog by {siteConfig.authorLabel}.{" "}
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-1 font-semibold text-ink underline decoration-orange decoration-2 underline-offset-4"
+            >
+              More about me
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
-            <a href="/feed.xml" className="btn btn-secondary sticker sticker-hover">
-              <Rss aria-hidden="true" className="size-4" />
-              RSS
-            </a>
-          </div>
+          </p>
         </div>
       </section>
 
       {topics.categories.length > 0 && (
-        <section aria-labelledby="topics-heading" className="mb-14">
+        <section aria-labelledby="topics-heading" className="mb-10">
           <h2 id="topics-heading" className="font-hand text-2xl text-ink-soft">
             or jump into a topic…
           </h2>
@@ -84,7 +78,7 @@ function HeroDoodles() {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 220 220"
-      className="pointer-events-none absolute -top-10 -right-10 hidden w-56 md:block lg:w-72"
+      className="pointer-events-none absolute -top-8 -right-8 hidden w-44 md:block lg:w-52"
     >
       <circle cx="120" cy="100" r="62" fill="var(--orange)" stroke="var(--edge)" strokeWidth="3" />
       <path

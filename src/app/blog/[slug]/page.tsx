@@ -43,11 +43,20 @@ export async function generateMetadata(props: PageProps<"/blog/[slug]">): Promis
     title: post.title,
     description: post.excerpt,
     alternates: canonicalAlternates(`/blog/${post.slug}`),
+    // Replaces the layout's openGraph object, so the shared fields are repeated.
+    // The image comes from ./opengraph-image.tsx.
     openGraph: {
       type: "article",
+      siteName: siteConfig.name,
+      locale: siteConfig.locale,
+      url: canonicalAlternates(`/blog/${post.slug}`)?.canonical,
       title: post.title,
       description: post.excerpt,
       publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+      authors: [siteConfig.authorLabel],
+      section: post.category?.name,
+      tags: post.tags.map((tag) => tag.name),
     },
   };
 }

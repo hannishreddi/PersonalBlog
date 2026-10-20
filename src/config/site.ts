@@ -1,15 +1,12 @@
-/**
- * Site-wide settings.
- *
- * PLACEHOLDER: the publication name, tagline, and author label below are
- * stand-ins. Replace them with the owner's real details before launch.
- */
+/** Site-wide settings. */
 export const siteConfig = {
-  name: "The Quiet Margin",
+  name: "Hannish Reddi",
   tagline: "Essays, reflections, and notes written slowly.",
-  description:
-    "A personal publication of essays, reflections, stories, and notes. (Placeholder description.)",
-  authorLabel: "Author name (placeholder)",
+  description: "Personal essays, reflections, stories, and notes by A Hannish Reddi.",
+  /** The byline on articles, and the author named in metadata and the feed. */
+  authorLabel: "A Hannish Reddi",
+  /** Open Graph locale. */
+  locale: "en_IN",
   /** Posts shown per page in the public feed. Matches the 3 × 3 tiered grid. */
   postsPerPage: 9,
 } as const;

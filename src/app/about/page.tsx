@@ -8,23 +8,25 @@ import { canonicalAlternates } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "About",
-  description: `About ${siteConfig.name} and the person who writes it.`,
+  description: `About ${siteConfig.authorLabel}, the person behind this blog.`,
   alternates: canonicalAlternates("/about"),
 };
 
 /*
- * PLACEHOLDER: everything personal on this page is stand-in copy, clearly
- * labelled as such. Replace it with the owner's own words before launch;
- * never invent biographical details.
+ * The owner's name and the blog's purpose are real. The three personal
+ * sections are still waiting for the owner's own details; each is marked
+ * with <ToFill>. Never invent biographical details to fill them.
  */
+function ToFill({ children }: { children: string }) {
+  return <em className="text-ink-muted">(To be filled in: {children})</em>;
+}
+
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 pt-14 sm:px-8 sm:pt-20">
       <header>
         <p className="-rotate-2 font-hand text-2xl text-accent">nice to meet you</p>
-        <h1 className="mt-2 font-serif text-5xl font-bold tracking-[-0.03em] text-ink sm:text-6xl">
-          About this blog
-        </h1>
+        <h1 className="mt-2 font-serif text-5xl font-bold tracking-[-0.03em] text-ink sm:text-6xl">About me</h1>
       </header>
 
       <div className="sticker mt-10 flex flex-col gap-6 rounded-[2rem] bg-peach p-6 sm:flex-row sm:items-center sm:p-8">
@@ -34,27 +36,30 @@ export default function AboutPage() {
         </div>
         <div>
           <p className="font-serif text-2xl font-semibold text-ink">{siteConfig.authorLabel}</p>
-          <p className="mt-2 text-ink-soft">
-            A one-line introduction goes here. <span className="text-ink-muted">(Placeholder copy.)</span>
-          </p>
+          <p className="mt-2 text-ink-soft">I write the essays, reflections, and notes on this blog.</p>
         </div>
       </div>
 
       <div className="article-prose mt-12">
+        <h2>Who I am</h2>
         <p>
-          This is where the story of {siteConfig.name} will be told: why it exists, what kinds of essays,
-          reflections, and notes appear here, and how often new writing tends to arrive.{" "}
-          <em>(Placeholder copy: replace with your own words.)</em>
+          <ToFill>a short introduction in your own words.</ToFill>
         </p>
+
+        <h2>What I&rsquo;m studying</h2>
+        <p>
+          <ToFill>your course or field, and where you study.</ToFill>
+        </p>
+
+        <h2>What I&rsquo;m working towards</h2>
+        <p>
+          <ToFill>what you hope to become or build.</ToFill>
+        </p>
+
         <h2>What you&rsquo;ll find here</h2>
         <p>
-          A few sentences about the themes this blog returns to.{" "}
-          <em>(Placeholder copy.)</em>
-        </p>
-        <h2>Say hello</h2>
-        <p>
-          How readers can get in touch, if at all: an email address or a social profile.{" "}
-          <em>(Placeholder copy: no contact details have been added yet.)</em>
+          Essays, reflections, and notes, written slowly. Browse them by{" "}
+          <Link href="/topics">topic</Link>, or start with the <Link href="/">latest writing</Link>.
         </p>
       </div>
 

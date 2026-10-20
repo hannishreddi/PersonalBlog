@@ -10,6 +10,7 @@ import { IMAGE_ACCEPT, adminMediaUrl, referencedImagePaths } from "@/lib/images"
 import { POST_LIMITS } from "@/lib/post-limits";
 import { estimateReadingTime } from "@/lib/reading-time";
 import { slugify } from "@/lib/slug";
+import { normalizeCategoryName, splitTagNames } from "@/lib/taxonomy";
 import type { PostStatus } from "@/types/post";
 
 import {
@@ -260,8 +261,7 @@ export function PostEditor({ post, categorySuggestions, tagSuggestions }: PostEd
   }
 
   const currentTagSlugs = new Set(
-    values.tags
-      .split(",")
+    splitTagNames(values.tags)
       .map((tag) => slugify(tag, POST_LIMITS.tagSlug))
       .filter(Boolean),
   );
@@ -454,7 +454,7 @@ export function PostEditor({ post, categorySuggestions, tagSuggestions }: PostEd
           field="tags"
           ids={ids}
           error={errors.tags}
-          hint={`Optional. Separate with commas, up to ${POST_LIMITS.tagsPerPost}.`}
+          hint={`Optional. Separate with commas or write them as #hashtags, up to ${POST_LIMITS.tagsPerPost}.`}
         >
           <input
             {...fieldProps("tags")}
@@ -656,10 +656,8 @@ function FieldMessages({ ids, field, error, hint }: { ids: string; field: PostFi
 
 /** The article as readers will see it, using the public renderer. */
 function Preview({ values, publishedAt }: { values: PostFormValues; publishedAt: string }) {
-  const tags = values.tags
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
+  const tags = [...new Set(splitTagNames(values.tags))];
+  const categoryName = normalizeCategoryName(values.categoryName);
 
   return (
     <div
@@ -667,8 +665,8 @@ function Preview({ values, publishedAt }: { values: PostFormValues; publishedAt:
       role="region"
       className="mt-2 rounded-2xl border border-rule bg-paper px-5 py-8 sm:px-8 sm:py-10"
     >
-      {values.categoryName.trim() && (
-        <p className="text-xs font-medium tracking-[0.16em] text-accent uppercase">{values.categoryName.trim()}</p>
+      {categoryName && (
+        <p className="text-xs font-medium tracking-[0.16em] text-accent uppercase">{categoryName}</p>
       )}
       <p className="mt-4 font-serif text-[2rem] leading-[1.08] tracking-[-0.02em] text-balance text-ink sm:text-[2.6rem]">
         {values.title || <span className="text-ink-muted">Untitled</span>}

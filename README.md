@@ -17,12 +17,12 @@ Project goals, stack decisions, and security requirements live in [`CLAUDE.md`](
 | Image upload and display | Cover and inline image upload in the editor; published images served through `/media` (see [Images](#images)). Posts without a cover show generated artwork |
 | Content discovery | Category and tag archives with pagination, clickable categories and tags, related articles under each post (see [Content discovery](#content-discovery)) |
 | Design system | Peach/orange palette, Fraunces + Bricolage Grotesque + Caveat, light/dark theme toggle (see [Design](#design)) |
-| Reader features | Search, Topics page, About page (placeholder copy), RSS feed, sitemap and robots, table of contents, reading progress bar, share/copy-link (see [Reader features](#reader-features)) |
+| Reader features | Search, Topics page, About page, RSS feed, sitemap and robots, table of contents, reading progress bar, share/copy-link (see [Reader features](#reader-features)) |
 
-The database has 3 published posts (October 2026).
-The publication name ("The Quiet Margin"), tagline, homepage intro, and author label
-are still placeholders, as is the About page; edit them in `src/config/site.ts`,
-`src/app/page.tsx`, and `src/app/about/page.tsx`.
+The site is "Hannish Reddi", written by A Hannish Reddi, and will be served at
+`https://hannishreddi.in`. Name, tagline, and author live in `src/config/site.ts`.
+The personal sections of the About page (`src/app/about/page.tsx`) are still marked
+"To be filled in".
 
 ## Setup
 
@@ -35,7 +35,7 @@ are still placeholders, as is the About page; edit them in `src/config/site.ts`,
      it is used solely to call the reader-engagement database functions.
    - `ENGAGEMENT_HASH_SECRET`: at least 32 random characters (command in
      `.env.example`). **Server-only.**
-   - `SITE_URL` (optional): the public origin, e.g. `https://example.com`. Used as
+   - `SITE_URL`: the public origin, `https://hannishreddi.in` in production. Used as
      `metadataBase` for canonical URLs on articles and archives. When unset, pages
      omit canonical links instead of guessing a host. Set it in production builds:
      the sitemap is empty, the RSS autodiscovery link and the X/Bluesky/LinkedIn/email
@@ -140,7 +140,8 @@ the list, to open the editor.
 
 - **Fields:** title, slug, excerpt, category, publication date, cover image, tags, and
   the Markdown body. Images are covered in [Images](#images). The slug follows the title until you edit it. A category or tag that doesn't
-  exist yet is created on save; tags are comma-separated (at most 10).
+  exist yet is created on save; tags are comma-separated or written as `#hashtags` (at
+  most 10). An all-lowercase category name is capitalised on save ("politics" → "Politics").
 - **Preview:** the Write / Preview toggle renders the article with the same
   `ArticleBody` component the public site uses. Raw HTML in Markdown is escaped and
   unsafe link schemes are dropped, as on the public site.
@@ -271,8 +272,6 @@ settings. The Supabase security advisor currently reports it as off.
 - Uploaded images that were never saved into a post (for example, the editor tab was
   closed before saving) stay in the bucket as private orphans. Nothing serves them.
   Remove them from the Supabase dashboard if needed.
-- Article pages don't yet add the cover as an Open Graph image; that needs an absolute
-  site URL (`metadataBase`), planned with the SEO stage.
 
 ## Content discovery
 
@@ -368,12 +367,14 @@ Tokens live in `src/app/globals.css` and are shared by the public site and admin
 | --- | --- |
 | `/search?q=` | Postgres full-text search (title > excerpt > body) via a generated `search_vector` column with a GIN index (migration `20261020170052_post_search`). `websearch` syntax, so `"phrases"`, `or`, and `-exclude` work. Max 100 characters, 20 newest matches. `noindex`, and disallowed in robots.txt |
 | `/topics` | Every category and tag with published posts, with counts |
-| `/about` | **Placeholder copy**, clearly labelled; replace with real details |
+| `/about` | The author and the blog. Personal sections are marked "To be filled in" until the owner supplies them |
 | `/feed.xml` | RSS 2.0, newest 20 posts (title, excerpt, category, date) |
 | `/sitemap.xml`, `/robots.txt` | Published posts, topics, and static pages only; `/admin` disallowed |
 | Table of contents | On articles with 3+ Markdown headings: collapsible box on small screens, sticky side column on wide ones. Heading ids come from one remark plugin (`src/lib/headings.ts`) used for both rendering and the list, so links always match |
 | Reading progress | CSS scroll-driven animation, no JavaScript; hidden where unsupported and for reduced-motion users |
 | Share | Copy link always; X, Bluesky, LinkedIn, and email links once `SITE_URL` is set. Plain links, no third-party scripts |
+| Link previews | `app/opengraph-image.tsx` (site default) and `app/blog/[slug]/opengraph-image.tsx` (title, category, and the cover when it is JPEG or PNG) render 1200 × 630 cards with `next/og` in the site's fonts (WOFF files and their SIL OFL licences in `assets/fonts`); large Twitter/X cards. Absolute image URLs need `SITE_URL` |
+| Security headers | Set for every route in `next.config.ts`: CSP (no nonces, so `'unsafe-inline'` scripts are allowed; nonces would force per-request rendering), `frame-ancestors 'none'`, nosniff, Referrer-Policy, Permissions-Policy, and HSTS in production |
 
 Search runs through the anon client, so RLS still limits it to published posts. A
 newsletter was deliberately not added: it needs a third-party email provider.

@@ -10,6 +10,7 @@ import { IMAGE_BUCKET, MAX_ALT_LENGTH, parseImagePath, referencedImagePaths } fr
 import { POST_LIMITS } from "@/lib/post-limits";
 import { POSTS_CACHE_TAG } from "@/lib/posts";
 import { isValidSlug, slugify } from "@/lib/slug";
+import { normalizeCategoryName, splitTagNames } from "@/lib/taxonomy";
 import { createSessionClient } from "@/lib/supabase/server";
 import type { PostStatus } from "@/types/post";
 
@@ -139,12 +140,10 @@ interface TagInput {
   slug: string;
 }
 
-/** Splits "a, b, c", collapses whitespace, and drops duplicates by slug. */
+/** Splits "a, b, c" or "#a #b" (see splitTagNames) and drops duplicates by slug. */
 function parseTags(raw: string): { tags: TagInput[] } | { error: string } {
   const tags = new Map<string, TagInput>();
-  for (const part of raw.split(",")) {
-    const name = part.replace(/\s+/g, " ").trim();
-    if (!name) continue;
+  for (const name of splitTagNames(raw)) {
     if (name.length > POST_LIMITS.tagName) {
       return { error: `Keep each tag under ${POST_LIMITS.tagName} characters.` };
     }
@@ -294,7 +293,7 @@ export async function savePost(_prev: SavePostState, formData: FormData): Promis
     // Browsers submit textarea line breaks as CRLF; store plain LF.
     excerpt: text(formData, "excerpt").replace(/\r\n?/g, "\n"),
     contentMarkdown: text(formData, "contentMarkdown").replace(/\r\n?/g, "\n"),
-    categoryName: text(formData, "categoryName").replace(/\s+/g, " "),
+    categoryName: normalizeCategoryName(text(formData, "categoryName")),
     tags: text(formData, "tags"),
     publishedAt: text(formData, "publishedAt"),
     coverImagePath: text(formData, "coverImagePath"),

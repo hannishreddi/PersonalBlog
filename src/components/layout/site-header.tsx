@@ -1,18 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Search } from "lucide-react";
 
+import { MainNavLinks, MainNavLinksFallback } from "@/components/layout/main-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SunMark } from "@/components/layout/sun-mark";
 import { siteConfig } from "@/config/site";
-
-const NAV_LINKS = [
-  { href: "/", label: "Writing" },
-  { href: "/topics", label: "Topics" },
-  { href: "/about", label: "About" },
-] as const;
-
-const navLinkClass =
-  "rounded-full px-3 py-1.5 font-semibold text-ink transition-colors hover:bg-paper-raised hover:underline hover:decoration-orange hover:decoration-2 hover:underline-offset-4";
 
 export function SiteHeader() {
   return (
@@ -27,15 +20,10 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Main" className="order-last w-full sm:order-none sm:w-auto sm:flex-1">
-          <ul className="-mx-3 flex items-center gap-1 text-[0.95rem] sm:mx-0 sm:justify-end">
-            {NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className={navLinkClass}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/* usePathname suspends on pages whose params weren't known at build time. */}
+          <Suspense fallback={<MainNavLinksFallback />}>
+            <MainNavLinks />
+          </Suspense>
         </nav>
 
         <div className="flex items-center gap-2">

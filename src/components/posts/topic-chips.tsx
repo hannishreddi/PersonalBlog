@@ -24,12 +24,13 @@ export function TopicChips({ kind, topics, moreHref, className = "" }: TopicChip
         <li key={topic.slug}>
           <Link
             href={`/${kind}/${topic.slug}`}
-            className={`sticker sticker-hover inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold ${
-              i % 3 === 0 ? "bg-orange text-on-orange" : i % 3 === 1 ? "bg-peach text-ink" : "bg-paper-raised text-ink"
-            } ${i % 2 === 0 ? "-rotate-1" : "rotate-1"}`}
+            // One colour for every chip: varied fills read as a selected filter.
+            className={`sticker sticker-hover inline-flex items-center gap-2 rounded-full bg-paper-raised px-4 py-2 font-semibold text-ink ${
+              i % 2 === 0 ? "-rotate-1" : "rotate-1"
+            }`}
           >
             {kind === "tag" ? formatTagName(topic.name) : topic.name}
-            <span className="rounded-full bg-paper-raised/70 px-2 text-xs font-bold text-ink tabular-nums">
+            <span className="rounded-full bg-peach px-2 text-xs font-bold text-ink tabular-nums">
               <span aria-hidden="true">{topic.count}</span>
               <span className="sr-only">({countLabel(topic.count)})</span>
             </span>

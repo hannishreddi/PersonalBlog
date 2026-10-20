@@ -6,7 +6,7 @@ This file defines the product goals, technical decisions, security requirements,
 
 This is a **standalone personal blogging website for sharing personal thoughts, reflections, opinions, stories, and essays with readers**.
 
-It is a separate project. **Do not treat it as `hannishreddi.in`, a personal portfolio, a résumé site, or a project showcase.** Do not add portfolio sections, career-oriented branding, project galleries, or other features from that separate website unless explicitly requested.
+The blog is called **Hannish Reddi**, is written by **A Hannish Reddi**, and will be served at **`hannishreddi.in`** (decided by the owner in October 2026). It is still a blog, not a portfolio: **do not turn it into a personal portfolio, a résumé site, or a project showcase.** Do not add portfolio sections, career-oriented branding, project galleries, or similar features unless explicitly requested. The About page holds reader-worthy facts about the author (who they are, what they study, what they aspire to), supplied by the owner.
 
 The website should feel personal, thoughtful, editorial, calm, and inviting. Prioritize reading comfort, writing quality, and easy discovery of posts over flashy effects or dashboard complexity.
 

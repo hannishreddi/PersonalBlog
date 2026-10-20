@@ -26,7 +26,8 @@ const TIER_STYLES: Record<CardTier, TierStyle> = {
     radius: "rounded-3xl",
     coverRadius: "rounded-[1.1rem]",
     title: "text-[1.75rem] leading-[1.12] sm:text-[2rem]",
-    excerpt: "text-[1.02rem] leading-relaxed",
+    // Clamped so one long excerpt doesn't leave the other cards in the row half empty.
+    excerpt: "text-[1.02rem] leading-relaxed line-clamp-4",
     sizes: "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw",
   },
   medium: {
